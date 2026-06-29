@@ -14,6 +14,7 @@ import Profil from './Profil';
 import TugasFungsi from './TugasFungsi';
 import KeberatanInformasi from './KeberatanInformasi';
 import SengketaInformasi from './SengketaInformasi';
+import ZonaIntegrasi from './ZonaIntegrasi';
 
 interface DynamicPageProps {
   activeSlug: string;
@@ -279,14 +280,15 @@ export default function DynamicPage({
           />
         ) : activeSlug === 'informasi-publik-berkala' ||
           activeSlug === 'info-serta-merta' ||
-          activeSlug === 'informasi-tersedia-setiap-saat' ||
-          activeSlug === 'zona-integrasi' ? (
+          activeSlug === 'informasi-tersedia-setiap-saat' ? (
           <InfoPublikTable
             activeSlug={activeSlug}
             pageData={pageData}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
           />
+        ) : activeSlug === 'zona-integrasi' ? (
+          <ZonaIntegrasi pageData={pageData} />
         ) : activeSlug === 'tugas-dan-fungsi' ? (
           <TugasFungsi pageData={pageData} />
         ) : activeSlug === 'Permohonan-penyelesaian-sengketa' || activeSlug === 'permohonan-penyelesaian-sengketa' ? (
