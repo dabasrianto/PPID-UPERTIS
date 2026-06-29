@@ -1,0 +1,41 @@
+# Node / Build directories
+node_modules/
+dist/
+frontend/dist/
+frontend/node_modules/
+
+# OS/IDE Files
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvsca
+*.njsproj
+*.sln
+*.sw?
+
+# Environment & Credentials
+.env
+backend/.env
+
+# Databases
+*.db
+backend/database.db
+
+# Go Binaries & Local Builds
+*.exe
+backend/*.exe
+backend/kampuspro-backend*
+backend/main*
+backend/server-linux
+backend/upertis-backend*
+backend/test_*
+
+# Logs
+*.log
+backend/*.log
+
+# Local Uploads & Temporary Media Files
+public/uploads/
+backend/uploads/
+uploads/
