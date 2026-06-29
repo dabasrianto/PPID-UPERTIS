@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, Plus, FileText, Edit, Trash2 } from 'lucide-react';
+import { ChevronLeft, Plus, FileText, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { resolveImageUrl } from '../../utils/helpers';
 
 interface ManageNewsProps {
@@ -23,6 +23,8 @@ interface ManageNewsProps {
   adminPosts: any[];
   openEditModal: (type: string, item: any) => void;
   handleDeleteCrudItem: (table: string, id: string) => void;
+  fetchAdminData: () => void;
+  token: string;
 }
 
 export default function ManageNews({
@@ -45,8 +47,36 @@ export default function ManageNews({
   openCreateModal,
   adminPosts,
   openEditModal,
-  handleDeleteCrudItem
+  handleDeleteCrudItem,
+  fetchAdminData,
+  token
 }: ManageNewsProps) {
+  const [isSyncing, setIsSyncing] = React.useState(false);
+
+  const handleSyncLiveNews = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch('/api/v1/admin/posts/sync-live', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`${data.message}\nMenambahkan ${data.added} berita baru dan melewati ${data.skipped} berita lama.`);
+        fetchAdminData();
+      } else {
+        alert(data.error || 'Gagal menyinkronkan berita.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan koneksi saat menyinkronkan berita.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <>
       {editModalOpen && editModalType === 'post' ? (
@@ -163,12 +193,22 @@ export default function ManageNews({
                 Tulis artikel, rilis data berkala, atau berita terbaru terkait keterbukaan informasi.
               </span>
             </div>
-            <button
-              onClick={() => openCreateModal('post')}
-              className="px-4 py-2 bg-[#002147] hover:bg-[#003166] text-white rounded-xl text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer border border-[#002147]/50"
-            >
-              <Plus className="h-4 w-4" /> Tulis Berita
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSyncLiveNews}
+                disabled={isSyncing}
+                className="px-4 py-2 bg-amber-400 hover:bg-amber-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed text-[#002147] rounded-xl text-xs font-extrabold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer border border-amber-400/50 shadow-sm hover:shadow"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} /> 
+                {isSyncing ? 'Menyinkronkan...' : 'Sinkron Berita UPERTIS'}
+              </button>
+              <button
+                onClick={() => openCreateModal('post')}
+                className="px-4 py-2 bg-[#002147] hover:bg-[#003166] text-white rounded-xl text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer border border-[#002147]/50"
+              >
+                <Plus className="h-4 w-4" /> Tulis Berita
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3">

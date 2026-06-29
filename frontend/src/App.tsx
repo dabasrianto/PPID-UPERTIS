@@ -2005,6 +2005,8 @@ setPermohonanActionLoading(false);
                     adminPosts={adminPosts}
                     openEditModal={openEditModal}
                     handleDeleteCrudItem={handleDeleteCrudItem}
+                    fetchAdminData={fetchAdminData}
+                    token={token}
                   />
                 )}
 

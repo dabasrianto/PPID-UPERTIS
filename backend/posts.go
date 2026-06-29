@@ -944,33 +944,34 @@ type LiveAPIPost struct {
 
 // syncPostsFromUpertis copies all posts from the live UPERTIS website (https://upertis.ac.id)
 // to the local PPID database (kampuspro_ppid).
-func syncPostsFromUpertis() {
+func syncPostsFromUpertis() (int, int, error) {
 	zlog.Info().Msg("PostSync: Starting background synchronization from live UPERTIS website (https://upertis.ac.id)...")
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	limit := 50
 	offset := 0
-	postCount := 0
+	addedCount := 0
+	skippedCount := 0
 
 	for {
 		url := fmt.Sprintf("https://upertis.ac.id/api/v1/posts?limit=%d&offset=%d", limit, offset)
 		resp, err := client.Get(url)
 		if err != nil {
 			zlog.Error().Err(err).Msg("PostSync: Failed to fetch post list from live UPERTIS")
-			return
+			return addedCount, skippedCount, err
 		}
 
 		bodyBytes, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			zlog.Error().Err(err).Msg("PostSync: Failed to read post list body")
-			return
+			return addedCount, skippedCount, err
 		}
 
 		var postsList []LiveAPIPost
 		if err := json.Unmarshal(bodyBytes, &postsList); err != nil {
 			zlog.Error().Err(err).Msg("PostSync: Failed to unmarshal post list JSON")
-			return
+			return addedCount, skippedCount, err
 		}
 
 		if len(postsList) == 0 {
@@ -983,7 +984,7 @@ func syncPostsFromUpertis() {
 			_ = db.QueryRowContext(context.Background(), "SELECT COUNT(*) FROM posts WHERE slug = $1", postSummary.Slug).Scan(&exists)
 			if exists > 0 {
 				// Already exists, skip fetching details
-				postCount++
+				skippedCount++
 				continue
 			}
 
@@ -1061,7 +1062,7 @@ func syncPostsFromUpertis() {
 				fullPost.CreatedAt,
 			)
 			if err == nil {
-				postCount++
+				addedCount++
 			} else {
 				zlog.Warn().Err(err).Str("slug", fullPost.Slug).Msg("PostSync: Failed to save post locally")
 			}
@@ -1082,7 +1083,8 @@ func syncPostsFromUpertis() {
 		WHERE content LIKE '%src="/uploads/%'
 	`)
 
-	zlog.Info().Int("count", postCount).Msg("PostSync: Completed synchronization from UPERTIS successfully!")
+	zlog.Info().Int("added", addedCount).Int("skipped", skippedCount).Msg("PostSync: Completed synchronization from UPERTIS successfully!")
+	return addedCount, skippedCount, nil
 }
 
 // StartBackgroundPostSync starts a background scheduler to sync posts every 5 minutes.
@@ -1091,13 +1093,28 @@ func StartBackgroundPostSync() {
 	go func() {
 		// Wait a few seconds for DB setup to complete
 		time.Sleep(5 * time.Second)
-		syncPostsFromUpertis()
+		_, _, _ = syncPostsFromUpertis()
 		
 		// Run every 5 minutes
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 		for range ticker.C {
-			syncPostsFromUpertis()
+			_, _, _ = syncPostsFromUpertis()
 		}
 	}()
+}
+
+// handleManualLiveSync triggers post synchronization from UPERTIS live site manually.
+func handleManualLiveSync(c *fiber.Ctx) error {
+	added, skipped, err := syncPostsFromUpertis()
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Gagal menyinkronkan berita: " + err.Error(),
+		})
+	}
+	return c.JSON(fiber.Map{
+		"message": "Sinkronisasi selesai dengan sukses!",
+		"added":   added,
+		"skipped": skipped,
+	})
 }

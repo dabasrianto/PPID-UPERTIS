@@ -474,6 +474,7 @@ func setupRoutes(api fiber.Router) {
 	admin.Delete("/import/rollback/:batchId", superAdminAuth, rollbackImportBatch)
 	admin.Delete("/posts/soft/:id", superAdminAuth, softDeletePost)
 	admin.Put("/posts/restore/:id", superAdminAuth, restorePost)
+	admin.Post("/posts/sync-live", requireRole("admin", "ppid_admin"), handleManualLiveSync)
 	admin.Get("/migration/check", superAdminAuth, checkMigrationIntegrity)
 	admin.Post("/pddikti/preview-lecturers", superAdminAuth, previewPDDIKTIUPERTISLecturers)
 	admin.Post("/pddikti/seed-lecturers", superAdminAuth, seedPDDIKTIUPERTISLecturers)
