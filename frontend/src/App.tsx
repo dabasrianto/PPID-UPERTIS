@@ -2006,7 +2006,6 @@ setPermohonanActionLoading(false);
                     openEditModal={openEditModal}
                     handleDeleteCrudItem={handleDeleteCrudItem}
                     fetchAdminData={fetchAdminData}
-                    token={token}
                   />
                 )}
 

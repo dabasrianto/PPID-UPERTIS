@@ -24,7 +24,6 @@ interface ManageNewsProps {
   openEditModal: (type: string, item: any) => void;
   handleDeleteCrudItem: (table: string, id: string) => void;
   fetchAdminData: () => void;
-  token: string;
 }
 
 export default function ManageNews({
@@ -48,18 +47,23 @@ export default function ManageNews({
   adminPosts,
   openEditModal,
   handleDeleteCrudItem,
-  fetchAdminData,
-  token
+  fetchAdminData
 }: ManageNewsProps) {
   const [isSyncing, setIsSyncing] = React.useState(false);
 
   const handleSyncLiveNews = async () => {
+    const storedToken = localStorage.getItem('auth_token');
+    if (!storedToken) {
+      alert('Sesi Anda telah berakhir. Silakan login kembali.');
+      return;
+    }
+
     setIsSyncing(true);
     try {
       const res = await fetch('/api/v1/admin/posts/sync-live', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${storedToken}`
         }
       });
       const data = await res.json();
