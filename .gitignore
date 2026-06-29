@@ -26,7 +26,9 @@ backend/database.db
 *.exe
 backend/*.exe
 backend/kampuspro-backend*
-backend/main*
+backend/main
+backend/main_linux
+backend/main_linux_arm64
 backend/server-linux
 backend/upertis-backend*
 backend/test_*
