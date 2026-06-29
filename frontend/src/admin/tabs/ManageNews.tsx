@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, Plus, FileText, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Plus, FileText, Edit, Trash2, RefreshCw, ChevronRight } from 'lucide-react';
 import { resolveImageUrl } from '../../utils/helpers';
 
 interface ManageNewsProps {
@@ -50,6 +50,17 @@ export default function ManageNews({
   fetchAdminData
 }: ManageNewsProps) {
   const [isSyncing, setIsSyncing] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const postsPerPage = 10;
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [adminPosts.length]);
+
+  const totalPages = Math.ceil(adminPosts.length / postsPerPage);
+  const indexOfLastPost = currentPage * postsPerPage;
+  const indexOfFirstPost = indexOfLastPost - postsPerPage;
+  const currentPosts = adminPosts.slice(indexOfFirstPost, indexOfLastPost);
 
   const handleSyncLiveNews = async () => {
     const storedToken = localStorage.getItem('auth_token');
@@ -221,7 +232,7 @@ export default function ManageNews({
                 Belum ada rilis berita terdaftar.
               </div>
             ) : (
-              adminPosts.map((post) => (
+              currentPosts.map((post) => (
                 <div
                   key={post.id}
                   className="flex flex-col gap-4 sm:flex-row sm:items-center bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all group"
@@ -277,6 +288,54 @@ export default function ManageNews({
               ))
             )}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100">
+              <span className="text-[11px] text-slate-400 font-medium">
+                Menampilkan <span className="font-bold text-slate-600">{indexOfFirstPost + 1}</span> -{' '}
+                <span className="font-bold text-slate-600">
+                  {Math.min(indexOfLastPost, adminPosts.length)}
+                </span>{' '}
+                dari <span className="font-bold text-slate-600">{adminPosts.length}</span> berita
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  className="px-3.5 py-2 bg-slate-50 border border-slate-200 text-[#002147] hover:border-[#002147] hover:bg-slate-100 disabled:opacity-50 disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed rounded-xl text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer transition-all"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" /> Sebelumnya
+                </button>
+                
+                {/* Page numbers */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => setCurrentPage(page)}
+                    className={`h-8 w-8 flex items-center justify-center rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                      currentPage === page
+                        ? 'bg-[#002147] border-[#002147] text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  className="px-3.5 py-2 bg-slate-50 border border-slate-200 text-[#002147] hover:border-[#002147] hover:bg-slate-100 disabled:opacity-50 disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-450 disabled:cursor-not-allowed rounded-xl text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer transition-all"
+                >
+                  Selanjutnya <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>
