@@ -77,6 +77,19 @@ func initDB() {
 		log.Println("Warning: Failed to add status column to users table:", err)
 	}
 
+	// Add phone_whatsapp column to users if not exists
+	_, err = db.ExecContext(context.Background(), `
+		DO $$
+		BEGIN
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='phone_whatsapp') THEN
+				ALTER TABLE users ADD COLUMN phone_whatsapp VARCHAR(50) DEFAULT '';
+			END IF;
+		END $$;
+	`)
+	if err != nil {
+		log.Println("Warning: Failed to add phone_whatsapp column to users table:", err)
+	}
+
 	// Auto-migrate column map_coordinates for campus_events
 	_, _ = db.ExecContext(context.Background(), `ALTER TABLE campus_events ADD COLUMN IF NOT EXISTS map_coordinates VARCHAR(100)`)
 	_, _ = db.ExecContext(context.Background(), `ALTER TABLE faculty_lecturers ADD COLUMN IF NOT EXISTS gelar VARCHAR(100) DEFAULT ''`)
