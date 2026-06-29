@@ -33,6 +33,21 @@ func migrateSitesTable() {
 	db.ExecContext(context.Background(), `CREATE INDEX IF NOT EXISTS idx_sites_domain ON sites(domain)`)
 	db.ExecContext(context.Background(), `CREATE INDEX IF NOT EXISTS idx_sites_slug ON sites(slug)`)
 	zlog.Info().Msg("Sites table ensured")
+
+	// Ensure default PPID site exists
+	var exists bool
+	_ = db.QueryRowContext(context.Background(), "SELECT EXISTS(SELECT 1 FROM sites WHERE slug = 'ppid')").Scan(&exists)
+	if !exists {
+		_, err := db.ExecContext(context.Background(), `
+			INSERT INTO sites (slug, domain, name, description, logo_url, accent_color, menu, settings, active)
+			VALUES ('ppid', 'ppid.localhost', 'PPID UPERTIS', 'Portal Layanan Informasi Publik UPERTIS', '/logo.png', 'blue', '[]'::jsonb, '{}'::jsonb, true)
+		`)
+		if err != nil {
+			zlog.Error().Err(err).Msg("Failed to seed default PPID site")
+		} else {
+			zlog.Info().Msg("Seeded default PPID site successfully")
+		}
+	}
 }
 
 // ─── Public: Get Site Config by Hostname ─────────────────────────────────────
