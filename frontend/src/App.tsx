@@ -1522,7 +1522,8 @@ const heroImages = useMemo(() => {
         subtitle: adminEditSubtitle,
         content: pageContent,
         slug: adminEditSlug || adminEditTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        cover_image_url: adminEditCoverImage
+        cover_image_url: adminEditCoverImage,
+        published: true
       };
     } else if (editModalType === 'post') {
       table = 'posts';
