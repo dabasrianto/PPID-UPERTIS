@@ -59,60 +59,71 @@ export const getPPIDMenuItemMeta = (title: string) => {
 // Default Indonesian Regulasi KIP Documents for Accordion Layout
 export const defaultRegulasiData = [
   {
-    category: 'Regulasi Nasional',
+    label: 'A. Regulasi Nasional (Dasar Hukum)',
     key: 'nasional',
+    desc: 'Undang-Undang, Peraturan Pemerintah, dan Peraturan Komisi Informasi Nasional.',
     items: [
       {
-        number: 'UU No. 14 Tahun 2008',
+        no: '01',
         title: 'Undang-Undang tentang Keterbukaan Informasi Publik (KIP)',
-        url: 'https://peraturan.go.id/id/uu-no-14-tahun-2008'
+        detail: 'UU No. 14 Tahun 2008',
+        fileUrl: 'https://peraturan.go.id/id/uu-no-14-tahun-2008'
       },
       {
-        number: 'PP No. 61 Tahun 2010',
+        no: '02',
         title: 'Peraturan Pemerintah Pelaksanaan UU KIP',
-        url: 'https://peraturan.go.id/id/pp-no-61-tahun-2010'
+        detail: 'PP No. 61 Tahun 2010',
+        fileUrl: 'https://peraturan.go.id/id/pp-no-61-tahun-2010'
       },
       {
-        number: 'Perki No. 1 Tahun 2021',
+        no: '03',
         title: 'Peraturan Komisi Informasi tentang Standar Layanan Informasi Publik',
-        url: 'https://komisiinformasi.go.id/regulasi/detail/perki-no-1-tahun-2021'
+        detail: 'Perki No. 1 Tahun 2021',
+        fileUrl: 'https://komisiinformasi.go.id/regulasi/detail/perki-no-1-tahun-2021'
       }
     ]
   },
   {
-    category: 'Regulasi Internal UPERTIS',
+    label: 'B. Regulasi Internal UPERTIS',
     key: 'internal',
+    desc: 'Surat Keputusan Rektor, Ketetapan DIP PPID Utama, dan Standar Operasional Prosedur (SOP) Internal.',
     items: [
       {
-        number: 'SK Rektor No. 008A/2025',
+        no: '01',
         title: 'Surat Keputusan Rektor tentang Penetapan Pejabat Pengelola Informasi dan Dokumentasi (PPID) Universitas Perintis Indonesia',
-        url: '#'
+        detail: 'SK Rektor No. 008A/2025',
+        fileUrl: '#'
       },
       {
-        number: 'SK PPID Utama No. 010B/2025',
+        no: '02',
         title: 'Penetapan Daftar Informasi Publik (DIP) UPERTIS yang Dimutakhirkan Tahun 2025',
-        url: '#'
+        detail: 'SK PPID Utama No. 010B/2025',
+        fileUrl: '#'
       },
       {
-        number: 'SK PPID Utama No. 010C/2025',
+        no: '03',
         title: 'Penetapan Daftar Informasi Publik yang Dikecualikan Tahun 2025',
-        url: '#'
+        detail: 'SK PPID Utama No. 010C/2025',
+        fileUrl: '#'
       }
     ]
   },
   {
-    category: 'Maklumat & SOP Pelayanan',
+    label: 'C. Maklumat & SOP Pelayanan',
     key: 'maklumat',
+    desc: 'Pedoman Pengelolaan Organisasi dan Administrasi resmi Universitas Perintis Indonesia.',
     items: [
       {
-        number: 'Maklumat Pelayanan',
+        no: '01',
         title: 'Pernyataan Kesanggupan Memberikan Pelayanan Informasi Sesuai Standar Layanan',
-        url: '#'
+        detail: 'Maklumat Pelayanan',
+        fileUrl: '#'
       },
       {
-        number: 'SOP Pelayanan',
+        no: '02',
         title: 'Standar Operasional Prosedur Pelayanan Informasi Publik PPID UPERTIS',
-        url: '#'
+        detail: 'SOP Pelayanan',
+        fileUrl: '#'
       }
     ]
   }
