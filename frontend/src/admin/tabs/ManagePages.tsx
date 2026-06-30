@@ -278,6 +278,99 @@ export default function ManagePages({
     }));
   };
 
+  // Local state for Struktur Organisasi
+  const [strukturAtasan, setStrukturAtasan] = React.useState('');
+  const [strukturUtama, setStrukturUtama] = React.useState('');
+  const [strukturPelaksana, setStrukturPelaksana] = React.useState<string[]>([]);
+  const [strukturPertimbangan, setStrukturPertimbangan] = React.useState<string[]>([]);
+  const [strukturPelayanan, setStrukturPelayanan] = React.useState<string[]>([]);
+  const [strukturDesc, setStrukturDesc] = React.useState('');
+
+  // Sync parent state with local states for Struktur Organisasi when modal opens/changes
+  React.useEffect(() => {
+    if (!editModalOpen || editModalType !== 'page' || adminEditSlug !== 'struktur-organisasi-2') {
+      setStrukturAtasan('');
+      setStrukturUtama('');
+      setStrukturPelaksana([]);
+      setStrukturPertimbangan([]);
+      setStrukturPelayanan([]);
+      setStrukturDesc('');
+      return;
+    }
+
+    const defaultPelaksana = ["Biro Humas", "Biro Akademik", "Biro Umum", "Dekan Fakultas"];
+    const defaultPertimbangan = ["ka P2AMIA", "ka LPPM", "ka P3TS", "Ka Prodi", "Ka. UPT"];
+    const defaultPelayanan = ["Staff Humas", "LTIK"];
+
+    if (adminEditContent) {
+      const trimmed = adminEditContent.trim();
+      if (trimmed.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed && typeof parsed === 'object') {
+            setStrukturAtasan(parsed.atasan || 'Rektor Universitas Perintis');
+            setStrukturUtama(parsed.utama || 'Wakil Rektor 1 & 2 UPERTIS');
+            setStrukturPelaksana(Array.isArray(parsed.pelaksana) ? parsed.pelaksana : defaultPelaksana);
+            setStrukturPertimbangan(Array.isArray(parsed.pertimbangan) ? parsed.pertimbangan : defaultPertimbangan);
+            setStrukturPelayanan(Array.isArray(parsed.pelayanan) ? parsed.pelayanan : defaultPelayanan);
+            setStrukturDesc(parsed.desc || '');
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to parse Struktur Organisasi content JSON:', e);
+        }
+      }
+      // Fallback legacy format
+      setStrukturAtasan('Rektor Universitas Perintis');
+      setStrukturUtama('Wakil Rektor 1 & 2 UPERTIS');
+      setStrukturPelaksana(defaultPelaksana);
+      setStrukturPertimbangan(defaultPertimbangan);
+      setStrukturPelayanan(defaultPelayanan);
+      setStrukturDesc(adminEditContent);
+    } else {
+      setStrukturAtasan('Rektor Universitas Perintis');
+      setStrukturUtama('Wakil Rektor 1 & 2 UPERTIS');
+      setStrukturPelaksana(defaultPelaksana);
+      setStrukturPertimbangan(defaultPertimbangan);
+      setStrukturPelayanan(defaultPelayanan);
+      setStrukturDesc('');
+    }
+  }, [editModalOpen, editModalType, adminEditSlug, adminEditContent]);
+
+  // Propagate local states back to parent state as serialized JSON
+  const updateStrukturContent = (fields: {
+    atasan?: string;
+    utama?: string;
+    pelaksana?: string[];
+    pertimbangan?: string[];
+    pelayanan?: string[];
+    desc?: string;
+  }) => {
+    const finalAtasan = fields.atasan !== undefined ? fields.atasan : strukturAtasan;
+    const finalUtama = fields.utama !== undefined ? fields.utama : strukturUtama;
+    const finalPelaksana = fields.pelaksana !== undefined ? fields.pelaksana : strukturPelaksana;
+    const finalPertimbangan = fields.pertimbangan !== undefined ? fields.pertimbangan : strukturPertimbangan;
+    const finalPelayanan = fields.pelayanan !== undefined ? fields.pelayanan : strukturPelayanan;
+    const finalDesc = fields.desc !== undefined ? fields.desc : strukturDesc;
+
+    if (fields.atasan !== undefined) setStrukturAtasan(fields.atasan);
+    if (fields.utama !== undefined) setStrukturUtama(fields.utama);
+    if (fields.pelaksana !== undefined) setStrukturPelaksana(fields.pelaksana);
+    if (fields.pertimbangan !== undefined) setStrukturPertimbangan(fields.pertimbangan);
+    if (fields.pelayanan !== undefined) setStrukturPelayanan(fields.pelayanan);
+    if (fields.desc !== undefined) setStrukturDesc(fields.desc);
+
+    setAdminEditContent(JSON.stringify({
+      atasan: finalAtasan,
+      utama: finalUtama,
+      pelaksana: finalPelaksana,
+      pertimbangan: finalPertimbangan,
+      pelayanan: finalPelayanan,
+      desc: finalDesc
+    }));
+  };
+
+
   const handleBulkUploadPageDocs = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -916,6 +1009,197 @@ export default function ManagePages({
                       )}
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* --- EDITOR BAGAN STRUKTUR ORGANISASI PPID --- */}
+            {adminEditSlug === 'struktur-organisasi-2' && (
+              <div className="space-y-6 pt-2 border-t border-slate-100 text-left">
+                <div>
+                  <span className="text-[10px] font-extrabold text-[#002147] uppercase tracking-wider block">
+                    PENGATURAN BAGAN STRUKTUR ORGANISASI PPID
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
+                    Modifikasi bagan keanggotaan dan alur koordinasi Pejabat Pengelola Informasi.
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">Atasan PPID</label>
+                    <input
+                      type="text"
+                      required
+                      value={strukturAtasan}
+                      onChange={(e) => updateStrukturContent({ atasan: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all bg-slate-50 font-bold text-slate-805"
+                      placeholder="Atasan PPID (contoh: Rektor Universitas Perintis)"
+                    />
+                  </div>
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">PPID Utama</label>
+                    <input
+                      type="text"
+                      required
+                      value={strukturUtama}
+                      onChange={(e) => updateStrukturContent({ utama: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all bg-slate-50 font-bold text-slate-805"
+                      placeholder="PPID Utama (contoh: Wakil Rektor 1 & 2 UPERTIS)"
+                    />
+                  </div>
+                </div>
+
+                {/* Column 1: PPID Pelaksana */}
+                <div className="space-y-3 p-4 border border-slate-200 rounded-2xl bg-slate-50/50">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">
+                      1. PPID Pelaksana (Biro & Dekan)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateStrukturContent({ pelaksana: [...strukturPelaksana, ''] })}
+                      className="text-[9px] font-bold text-blue-600 hover:underline cursor-pointer border-0 bg-transparent font-sans"
+                    >
+                      + Tambah Item
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {strukturPelaksana.map((item, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <span className="text-[10px] font-bold text-slate-400 font-mono w-4 shrink-0 text-right">{idx + 1}.</span>
+                        <input
+                          type="text"
+                          required
+                          value={item}
+                          onChange={(e) => {
+                            const updated = [...strukturPelaksana];
+                            updated[idx] = e.target.value;
+                            updateStrukturContent({ pelaksana: updated });
+                          }}
+                          className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs focus:outline-none bg-white font-semibold text-slate-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = strukturPelaksana.filter((_, i) => i !== idx);
+                            updateStrukturContent({ pelaksana: updated });
+                          }}
+                          className="text-rose-500 hover:text-rose-700 text-xs px-2 border-0 bg-transparent cursor-pointer font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {strukturPelaksana.length === 0 && (
+                      <p className="text-[11px] text-slate-400 italic">Belum ada item ditambahkan.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Column 2: Tim Pertimbangan */}
+                <div className="space-y-3 p-4 border border-slate-200 rounded-2xl bg-slate-50/50">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">
+                      2. Tim Pertimbangan (Komite Pertimbangan)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateStrukturContent({ pertimbangan: [...strukturPertimbangan, ''] })}
+                      className="text-[9px] font-bold text-amber-600 hover:underline cursor-pointer border-0 bg-transparent font-sans"
+                    >
+                      + Tambah Item
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {strukturPertimbangan.map((item, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <span className="text-[10px] font-bold text-slate-400 font-mono w-4 shrink-0 text-right">{idx + 1}.</span>
+                        <input
+                          type="text"
+                          required
+                          value={item}
+                          onChange={(e) => {
+                            const updated = [...strukturPertimbangan];
+                            updated[idx] = e.target.value;
+                            updateStrukturContent({ pertimbangan: updated });
+                          }}
+                          className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs focus:outline-none bg-white font-semibold text-slate-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = strukturPertimbangan.filter((_, i) => i !== idx);
+                            updateStrukturContent({ pertimbangan: updated });
+                          }}
+                          className="text-rose-500 hover:text-rose-700 text-xs px-2 border-0 bg-transparent cursor-pointer font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {strukturPertimbangan.length === 0 && (
+                      <p className="text-[11px] text-slate-400 italic">Belum ada item ditambahkan.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Column 3: Petugas Pelayanan */}
+                <div className="space-y-3 p-4 border border-slate-200 rounded-2xl bg-slate-50/50">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
+                      3. Petugas Pelayanan (Staf Desk Pelayanan)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateStrukturContent({ pelayanan: [...strukturPelayanan, ''] })}
+                      className="text-[9px] font-bold text-emerald-600 hover:underline cursor-pointer border-0 bg-transparent font-sans"
+                    >
+                      + Tambah Item
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {strukturPelayanan.map((item, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <span className="text-[10px] font-bold text-slate-400 font-mono w-4 shrink-0 text-right">{idx + 1}.</span>
+                        <input
+                          type="text"
+                          required
+                          value={item}
+                          onChange={(e) => {
+                            const updated = [...strukturPelayanan];
+                            updated[idx] = e.target.value;
+                            updateStrukturContent({ pelayanan: updated });
+                          }}
+                          className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs focus:outline-none bg-white font-semibold text-slate-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = strukturPelayanan.filter((_, i) => i !== idx);
+                            updateStrukturContent({ pelayanan: updated });
+                          }}
+                          className="text-rose-500 hover:text-rose-700 text-xs px-2 border-0 bg-transparent cursor-pointer font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {strukturPelayanan.length === 0 && (
+                      <p className="text-[11px] text-slate-400 italic">Belum ada item ditambahkan.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section Description */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">Penjelasan Tambahan (HTML/Markdown)</label>
+                  <textarea
+                    value={strukturDesc}
+                    onChange={(e) => updateStrukturContent({ desc: e.target.value })}
+                    placeholder="Masukkan penjelasan tambahan di bawah bagan jika ada..."
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs focus:outline-none bg-slate-50 h-28 font-medium text-slate-805"
+                  />
                 </div>
               </div>
             )}

@@ -45,6 +45,37 @@ export default function Profil({ pageData }: ProfilProps) {
     parsedJson = null;
   }
 
+  // Parse Struktur Organisasi JSON
+  let ppidAtasan = 'Rektor Universitas Perintis';
+  let ppidUtama = 'Wakil Rektor 1 & 2 UPERTIS';
+  let ppidPelaksana = ["Biro Humas", "Biro Akademik", "Biro Umum", "Dekan Fakultas"];
+  let ppidPertimbangan = ["ka P2AMIA", "ka LPPM", "ka P3TS", "Ka Prodi", "Ka. UPT"];
+  let ppidPelayanan = ["Staff Humas", "LTIK"];
+  let ppidDesc = '';
+
+  if (extraData.struktur?.content) {
+    const trimmed = extraData.struktur.content.trim();
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === 'object') {
+          ppidAtasan = parsed.atasan || ppidAtasan;
+          ppidUtama = parsed.utama || ppidUtama;
+          if (Array.isArray(parsed.pelaksana)) ppidPelaksana = parsed.pelaksana;
+          if (Array.isArray(parsed.pertimbangan)) ppidPertimbangan = parsed.pertimbangan;
+          if (Array.isArray(parsed.pelayanan)) ppidPelayanan = parsed.pelayanan;
+          ppidDesc = parsed.desc || '';
+        }
+      } catch (e) {
+        console.error('Failed to parse dynamic struktur JSON:', e);
+        ppidDesc = extraData.struktur.content;
+      }
+    } else {
+      ppidDesc = extraData.struktur.content;
+    }
+  }
+
+
   return (
     <div className="space-y-12 animate-in fade-in duration-200 text-left w-full py-6">
       {/* Premium Hero Banner */}
@@ -257,9 +288,9 @@ export default function Profil({ pageData }: ProfilProps) {
           <div className="flex flex-col items-center relative">
             <div className="group relative bg-[#002147] text-white p-5 rounded-2xl shadow-md border border-amber-400 w-72 text-center transition-all hover:scale-105 hover:shadow-lg hover:border-amber-300">
               <span className="text-[9px] text-amber-400 font-extrabold uppercase tracking-widest font-mono block">ATASAN PPID</span>
-              <h4 className="text-xs font-black mt-1 leading-snug">Rektor Universitas Perintis</h4>
+              <h4 className="text-xs font-black mt-1 leading-snug">{ppidAtasan}</h4>
               <p className="text-[10px] text-slate-350 font-medium mt-1 leading-relaxed border-t border-white/10 pt-1.5">
-                Rektor Universitas Perintis
+                {ppidAtasan}
               </p>
             </div>
             
@@ -271,9 +302,9 @@ export default function Profil({ pageData }: ProfilProps) {
           <div className="flex flex-col items-center relative">
             <div className="group relative bg-[#002147] text-white p-5 rounded-2xl shadow-md border border-blue-400 w-72 text-center transition-all hover:scale-105 hover:shadow-lg hover:border-blue-300">
               <span className="text-[9px] text-blue-300 font-extrabold uppercase tracking-widest font-mono block">PPID UTAMA</span>
-              <h4 className="text-xs font-black mt-1 leading-snug">Wakil Rektor 1 & 2 UPERTIS</h4>
+              <h4 className="text-xs font-black mt-1 leading-snug">{ppidUtama}</h4>
               <p className="text-[10px] text-slate-350 font-medium mt-1 leading-relaxed border-t border-white/10 pt-1.5">
-                Wakil Rektor 1 & 2 UPERTIS
+                {ppidUtama}
               </p>
             </div>
 
@@ -308,7 +339,7 @@ export default function Profil({ pageData }: ProfilProps) {
                   <h4 className="text-xs font-black text-slate-800 mt-1">Biro & Dekan</h4>
                 </div>
                 <div className="text-[10px] text-slate-500 font-semibold border-t border-slate-100 pt-2.5 mt-2 space-y-1 text-left">
-                  {["Biro Humas", "Biro Akademik", "Biro Umum", "Dekan Fakultas"].map((item, idx) => (
+                  {ppidPelaksana.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-1.5">
                       <span className="h-1 w-1 rounded-full bg-blue-500" />
                       <span>{item}</span>
@@ -328,7 +359,7 @@ export default function Profil({ pageData }: ProfilProps) {
                   <h4 className="text-xs font-black text-slate-800 mt-1">Komite Pertimbangan</h4>
                 </div>
                 <div className="text-[10px] text-slate-500 font-semibold border-t border-slate-100 pt-2.5 mt-2 space-y-1 text-left">
-                  {["ka P2AMIA", "ka LPPM", "ka P3TS", "Ka Prodi", "Ka. UPT"].map((item, idx) => (
+                  {ppidPertimbangan.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-1.5">
                       <span className="h-1 w-1 rounded-full bg-amber-500" />
                       <span>{item}</span>
@@ -348,7 +379,7 @@ export default function Profil({ pageData }: ProfilProps) {
                   <h4 className="text-xs font-black text-slate-800 mt-1">Staf Desk Pelayanan</h4>
                 </div>
                 <div className="text-[10px] text-slate-500 font-semibold border-t border-slate-100 pt-2.5 mt-2 space-y-1 text-left">
-                  {["Staff Humas", "LTIK"].map((item, idx) => (
+                  {ppidPelayanan.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-1.5">
                       <span className="h-1 w-1 rounded-full bg-emerald-500" />
                       <span>{item}</span>
@@ -361,10 +392,10 @@ export default function Profil({ pageData }: ProfilProps) {
           </div>
         </div>
 
-        {extraData.struktur?.content && (
+        {ppidDesc && (
           <div
             className="html-content text-xs text-slate-600 leading-relaxed space-y-4 pt-6 border-t border-slate-100 max-w-2xl mx-auto"
-            dangerouslySetInnerHTML={{ __html: preprocessPostContent(extraData.struktur.content) }}
+            dangerouslySetInnerHTML={{ __html: preprocessPostContent(ppidDesc) }}
           />
         )}
       </section>
