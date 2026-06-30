@@ -224,6 +224,7 @@ func initDB() {
 	if err != nil {
 		log.Println("Warning: Failed to create downloads table:", err)
 	}
+	_, _ = db.ExecContext(context.Background(), `ALTER TABLE downloads ALTER COLUMN file_url TYPE TEXT`)
 
 	// Create gallery table
 	_, err = db.ExecContext(context.Background(), `

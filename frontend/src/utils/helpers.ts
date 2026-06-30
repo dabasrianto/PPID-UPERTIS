@@ -121,6 +121,18 @@ export const defaultRegulasiData = [
 export const parseRegulasiHTML = (htmlContent?: string) => {
   if (!htmlContent) return defaultRegulasiData;
 
+  const trimmed = htmlContent.trim();
+  if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to parse htmlContent JSON in parseRegulasiHTML:', e);
+    }
+  }
+
   let cleanText = htmlContent
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')

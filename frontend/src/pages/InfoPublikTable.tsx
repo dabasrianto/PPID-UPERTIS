@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import {
   Clock, Calendar, ShieldAlert, ShieldCheck, X, Layers, FileDown, Info, FileText
 } from 'lucide-react';
@@ -10,17 +11,21 @@ interface InfoPublikTableProps {
   pageData: PageData;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
+  dbDownloads?: any[];
 }
 
 export default function InfoPublikTable({
   activeSlug,
   pageData,
   searchTerm,
-  setSearchTerm
+  setSearchTerm,
+  dbDownloads = []
 }: InfoPublikTableProps) {
+  const [activeLightboxImage, setActiveLightboxImage] = useState<string | null>(null);
   const rawContent = pageData?.content || '';
   let docs: Array<{ title: string; description?: string; file_url: string }> = [];
   let introText = '';
+  let sections: Array<{ text: string; imageUrl?: string; imageUrls?: string[]; imagePosition?: 'left' | 'right' }> = [];
   let isJson = false;
 
   try {
@@ -32,11 +37,35 @@ export default function InfoPublikTable({
         docs = parsed;
       }
       introText = parsed.intro || '';
+      if (Array.isArray(parsed.sections)) {
+        sections = parsed.sections;
+      }
       isJson = true;
     }
   } catch (e) {
     isJson = false;
     introText = rawContent;
+  }
+
+  // Determine if it is a synchronized DIP category page
+  const dipCategories: Record<string, string> = {
+    'informasi-publik-berkala': 'ppid-berkala',
+    'informasi-tersedia-setiap-saat': 'ppid-setiap-saat',
+    'info-serta-merta': 'ppid-serta-merta',
+    'informasi-dikecualikan': 'ppid-dikecualikan'
+  };
+
+  const targetCategory = dipCategories[activeSlug];
+  if (targetCategory) {
+    docs = dbDownloads
+      .filter((item: any) => item.category === targetCategory || item.category === targetCategory.replace('ppid-', ''))
+      .map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        file_url: item.file_url
+      }));
+    isJson = true; // Force structured table layout for synced categories
   }
 
   // Fallback to normal rendering if it is not JSON
@@ -129,15 +158,111 @@ export default function InfoPublikTable({
         </div>
       </div>
 
-      {/* Custom Description text */}
-      {introText && introText.trim().length > 0 && (
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 lg:p-8 shadow-sm">
-          <h3 className="text-xs font-bold text-[#002147] uppercase tracking-wider mb-3">Pengantar & Ketentuan</h3>
-          <div
-            className="html-content text-xs lg:text-sm text-slate-655 leading-relaxed space-y-3"
-            dangerouslySetInnerHTML={{ __html: preprocessPostContent(introText) }}
-          />
+      {/* Custom Description sections */}
+      {sections.length > 0 ? (
+        <div className="space-y-6">
+          {sections.map((section, sIdx) => {
+            const images = Array.isArray(section.imageUrls)
+              ? section.imageUrls
+              : (section.imageUrl ? [section.imageUrl] : []);
+            const hasImage = images.length > 0;
+            const isImageLeft = section.imagePosition === 'left';
+
+            return (
+              <div
+                key={sIdx}
+                className="bg-white border border-slate-200 rounded-3xl p-6 lg:p-8 shadow-sm flex flex-col lg:flex-row items-center gap-8 text-left"
+              >
+                {/* Text Column */}
+                <div
+                  className={`w-full ${hasImage ? 'lg:w-1/2' : 'w-full'} space-y-3 ${
+                    hasImage ? (isImageLeft ? 'lg:order-2' : 'lg:order-1') : ''
+                  }`}
+                >
+                  {sIdx === 0 && (
+                    <h3 className="text-xs font-bold text-[#002147] uppercase tracking-wider mb-2">Pengantar & Ketentuan</h3>
+                  )}
+                  <div
+                    className="html-content text-xs lg:text-sm text-slate-655 leading-relaxed space-y-3"
+                    dangerouslySetInnerHTML={{ __html: preprocessPostContent(section.text) }}
+                  />
+                </div>
+
+                {/* Image Column */}
+                {hasImage && (
+                  <div
+                    className={`w-full lg:w-1/2 flex justify-center py-6 lg:py-0 ${
+                      isImageLeft ? 'lg:order-1' : 'lg:order-2'
+                    }`}
+                  >
+                    {images.length === 1 ? (
+                      <img
+                        src={resolveImageUrl(images[0])}
+                        alt={`Visual ${sIdx + 1}`}
+                        onClick={() => setActiveLightboxImage(resolveImageUrl(images[0]))}
+                        className="w-full h-auto max-h-[300px] object-cover rounded-2xl shadow-sm border border-slate-100 hover:scale-[1.02] cursor-pointer hover:shadow-md transition-all duration-305"
+                      />
+                    ) : (
+                      <div className="relative w-[340px] h-[340px] select-none group flex shrink-0 justify-center items-center">
+                        {/* Gambar 1: Kiri/Belakang (Vertikal) */}
+                        {images[0] && (
+                          <div 
+                            onClick={() => setActiveLightboxImage(resolveImageUrl(images[0]))}
+                            className="absolute top-0 left-0 w-[190px] h-[240px] rounded-[2.5rem] overflow-hidden border-4 border-white shadow-lg z-10 transition-all duration-500 hover:scale-102 cursor-pointer hover:shadow-2xl hover:z-40 animate-float-slow group-hover:-translate-x-3 group-hover:-translate-y-1"
+                          >
+                            <img
+                              src={resolveImageUrl(images[0])}
+                              alt="Visual 1"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+
+                        {/* Gambar 2: Kanan Atas (Persegi) */}
+                        {images[1] && (
+                          <div 
+                            onClick={() => setActiveLightboxImage(resolveImageUrl(images[1]))}
+                            className="absolute top-6 left-[145px] w-[130px] h-[130px] rounded-[2rem] overflow-hidden border-4 border-white shadow-md z-25 transition-all duration-500 hover:scale-105 cursor-pointer hover:shadow-2xl hover:z-40 animate-float-medium group-hover:translate-x-3 group-hover:-translate-y-2"
+                          >
+                            <img
+                              src={resolveImageUrl(images[1])}
+                              alt="Visual 2"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+
+                        {/* Gambar 3: Tengah/Depan Bawah (Horizontal) */}
+                        {images[2] && (
+                          <div 
+                            onClick={() => setActiveLightboxImage(resolveImageUrl(images[2]))}
+                            className="absolute top-[135px] left-[65px] w-[230px] h-[180px] rounded-[2.5rem] overflow-hidden border-4 border-white shadow-xl z-30 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer hover:z-40 animate-float-fast group-hover:translate-y-2 group-hover:translate-x-1"
+                          >
+                            <img
+                              src={resolveImageUrl(images[2])}
+                              alt="Visual 3"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
+      ) : (
+        introText && introText.trim().length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 lg:p-8 shadow-sm">
+            <h3 className="text-xs font-bold text-[#002147] uppercase tracking-wider mb-3">Pengantar & Ketentuan</h3>
+            <div
+              className="html-content text-xs lg:text-sm text-slate-655 leading-relaxed space-y-3"
+              dangerouslySetInnerHTML={{ __html: preprocessPostContent(introText) }}
+            />
+          </div>
+        )
       )}
 
       <DownloadTable
@@ -160,6 +285,29 @@ export default function InfoPublikTable({
           </p>
         </div>
       </div>
+
+      {/* Interactive Image Lightbox Modal */}
+      {activeLightboxImage && (
+        <div 
+          onClick={() => setActiveLightboxImage(null)}
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4 transition-all duration-300 animate-in fade-in cursor-zoom-out"
+        >
+          <div className="relative max-w-4xl max-h-[85vh] overflow-hidden rounded-2xl border border-white/10 shadow-2xl animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <button 
+              onClick={() => setActiveLightboxImage(null)}
+              className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white rounded-full p-2.5 transition-colors border border-white/10 cursor-pointer z-50"
+              title="Tutup Zoom"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <img 
+              src={activeLightboxImage} 
+              alt="Zoomed preview" 
+              className="max-w-full max-h-[80vh] object-contain rounded-2xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

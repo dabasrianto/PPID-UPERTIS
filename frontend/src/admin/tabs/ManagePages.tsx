@@ -1,6 +1,6 @@
 import React from 'react';
-import { ChevronLeft, Plus, Trash2, FileText, Edit, ArrowUp, ArrowDown } from 'lucide-react';
-import { resolveImageUrl } from '../../utils/helpers';
+import { ChevronLeft, Plus, Trash2, FileText, Edit, ArrowUp, ArrowDown, Upload, Loader2, Info } from 'lucide-react';
+import { resolveImageUrl, parseRegulasiHTML } from '../../utils/helpers';
 
 interface PageDoc {
   title: string;
@@ -183,6 +183,155 @@ export default function ManagePages({
   editSengketaFlow,
   setEditSengketaFlow
 }: ManagePagesProps) {
+  const [isUploadingDocs, setIsUploadingDocs] = React.useState(false);
+  // Local state for Regulasi accordion editor
+  const [regulasiGroups, setRegulasiGroups] = React.useState<any[]>([]);
+  const [isUploadingRegulasiFile, setIsUploadingRegulasiFile] = React.useState<Record<string, boolean>>({});
+
+  // Sync parent state with local list when parent opens/changes
+  React.useEffect(() => {
+    if (!editModalOpen || editModalType !== 'page' || adminEditSlug !== 'regulasi') {
+      setRegulasiGroups([]);
+      return;
+    }
+
+    if (adminEditContent) {
+      const trimmed = adminEditContent.trim();
+      if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            setRegulasiGroups(parsed);
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to parse regulasi JSON content:', e);
+        }
+      }
+
+      // Text-based fallback: parse using parseRegulasiHTML
+      const parsed = parseRegulasiHTML(adminEditContent);
+      setRegulasiGroups(parsed);
+    } else {
+      setRegulasiGroups([]);
+    }
+  }, [editModalOpen, editModalType, adminEditSlug, adminEditContent]);
+
+  // Propagate local list changes back to the parent state as serialized JSON
+  const updateRegulasiContent = (groups: any[]) => {
+    setRegulasiGroups(groups);
+    setAdminEditContent(JSON.stringify(groups));
+  };
+  // Local state for DIP pages text description sections
+  interface DipSection {
+    text: string;
+    imageUrls: string[];
+    imagePosition: 'left' | 'right';
+  }
+  const [dipSections, setDipSections] = React.useState<DipSection[]>([]);
+  const [isUploadingDipSectionImage, setIsUploadingDipSectionImage] = React.useState<Record<string, boolean>>({});
+
+  // Sync parent state with local dipSections state when modal opens/changes
+  React.useEffect(() => {
+    if (!editModalOpen || editModalType !== 'page' || !['informasi-publik-berkala', 'informasi-tersedia-setiap-saat', 'info-serta-merta', 'informasi-dikecualikan'].includes(adminEditSlug)) {
+      setDipSections([]);
+      return;
+    }
+
+    if (adminEditContent) {
+      const trimmed = adminEditContent.trim();
+      if (trimmed.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed && typeof parsed === 'object') {
+            if (Array.isArray(parsed.sections)) {
+              const mapped = parsed.sections.map((sec: any) => ({
+                text: sec.text || '',
+                imageUrls: Array.isArray(sec.imageUrls) ? sec.imageUrls : (sec.imageUrl ? [sec.imageUrl] : []),
+                imagePosition: sec.imagePosition || 'right'
+              }));
+              setDipSections(mapped);
+              return;
+            } else {
+              // Legacy JSON format (has intro but no sections list)
+              setDipSections([{ text: parsed.intro || '', imageUrls: [], imagePosition: 'right' }]);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to parse DIP page content JSON:', e);
+        }
+      }
+      // Plain text legacy format
+      setDipSections([{ text: adminEditContent, imageUrls: [], imagePosition: 'right' }]);
+    } else {
+      setDipSections([]);
+    }
+  }, [editModalOpen, editModalType, adminEditSlug, adminEditContent]);
+
+  // Propagate local dipSections changes back to the parent state as serialized JSON
+  const updateDipSections = (sections: DipSection[]) => {
+    setDipSections(sections);
+    setAdminEditContent(JSON.stringify({ 
+      intro: sections[0]?.text || '', 
+      sections 
+    }));
+  };
+
+  const handleBulkUploadPageDocs = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingDocs(true);
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      alert('Sesi login telah berakhir. Silakan login kembali.');
+      setIsUploadingDocs(false);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('folder', 'documents');
+    for (let i = 0; i < files.length; i++) {
+      formData.append('files', files[i]);
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/uploads`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const uploadedList = data.uploaded || [];
+        if (uploadedList.length > 0) {
+          const newDocs = uploadedList.map((item: any) => {
+            const titleWithoutExt = item.original_name ? item.original_name.replace(/\.[^/.]+$/, "") : "Dokumen";
+            const formattedTitle = titleWithoutExt
+              .replace(/[_-]+/g, ' ')
+              .replace(/(^\w|\s\w)/g, (m: string) => m.toUpperCase());
+            return {
+              title: formattedTitle,
+              description: '',
+              file_url: item.url
+            };
+          });
+          setAdminEditPageDocs(prev => [...prev, ...newDocs]);
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Gagal mengunggah berkas.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error saat mengunggah berkas.');
+    } finally {
+      setIsUploadingDocs(false);
+      e.target.value = '';
+    }
+  };
+
   return (
     <>
       {editModalOpen && editModalType === 'page' ? (
@@ -895,7 +1044,578 @@ export default function ManagePages({
                   />
                 </div>
               </div>
-            ) : ['informasi-publik-berkala', 'informasi-tersedia-setiap-saat', 'info-serta-merta', 'informasi-dikecualikan', 'zona-integrasi', 'keberatan-informasi', 'Permohonan-penyelesaian-sengketa', 'permohonan-penyelesaian-sengketa'].includes(adminEditSlug) ? (
+            ) : adminEditSlug === 'regulasi' ? (
+              <div className="space-y-6 pt-2 border-t border-slate-100 text-left">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div>
+                    <span className="text-[10px] font-extrabold text-[#002147] uppercase tracking-wider block">
+                      Pengaturan Regulasi Accordion
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-medium block">
+                      Kelola grup accordion regulasi dan daftar dokumen/SOP yang ada di dalamnya.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newGroup = {
+                        key: String.fromCharCode(65 + regulasiGroups.length), // A, B, C...
+                        label: `${String.fromCharCode(65 + regulasiGroups.length)}. Kategori Baru`,
+                        desc: 'Deskripsi kategori regulasi baru.',
+                        items: []
+                      };
+                      updateRegulasiContent([...regulasiGroups, newGroup]);
+                    }}
+                    className="px-3.5 py-2 bg-[#002147] hover:bg-[#003166] text-white rounded-xl text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer border border-[#002147]/55"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Tambah Grup
+                  </button>
+                </div>
+
+                <div className="space-y-6 max-h-[600px] overflow-y-auto pr-1">
+                  {regulasiGroups.length > 0 ? (
+                    regulasiGroups.map((group, gIdx) => (
+                      <div key={gIdx} className="p-5 border border-slate-200 rounded-3xl bg-slate-50/50 space-y-4 relative">
+                        <div className="absolute top-4 right-4 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newList = regulasiGroups.filter((_, i) => i !== gIdx).map((g, i) => ({
+                                ...g,
+                                key: String.fromCharCode(65 + i),
+                                label: g.label.replace(/^[A-Z]\.\s+/, `${String.fromCharCode(65 + i)}. `)
+                              }));
+                              updateRegulasiContent(newList);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-red-650 hover:bg-red-50 rounded-lg transition-all"
+                            title="Hapus Grup"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pr-10">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-slate-500 uppercase block">Key</label>
+                            <input
+                              type="text"
+                              required
+                              value={group.key}
+                              onChange={(e) => {
+                                const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, key: e.target.value.toUpperCase() } : g);
+                                updateRegulasiContent(newList);
+                              }}
+                              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 bg-white"
+                            />
+                          </div>
+                          <div className="space-y-1 md:col-span-2">
+                            <label className="text-[9px] font-bold text-slate-500 uppercase block">Nama Grup (Accordion Header) <span className="text-red-500">*</span></label>
+                            <input
+                              type="text"
+                              required
+                              value={group.label}
+                              onChange={(e) => {
+                                const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, label: e.target.value } : g);
+                                updateRegulasiContent(newList);
+                              }}
+                              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 bg-white"
+                              placeholder="A. Regulasi Nasional"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-slate-500 uppercase block">Deskripsi Grup</label>
+                          <textarea
+                            value={group.desc}
+                            onChange={(e) => {
+                              const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, desc: e.target.value } : g);
+                              updateRegulasiContent(newList);
+                            }}
+                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-800 bg-white h-16 resize-none"
+                            placeholder="Deskripsi singkat mengenai regulasi grup ini..."
+                          />
+                        </div>
+
+                        {/* Items list inside group */}
+                        <div className="space-y-3 pt-3 border-t border-slate-200/60 text-left">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-extrabold text-[#002147] uppercase tracking-wider">
+                              Daftar Regulasi / Dokumen di Grup Ini
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newItem = {
+                                  no: String(group.items.length + 1).padStart(2, '0'),
+                                  title: '',
+                                  detail: '',
+                                  fileUrl: ''
+                                };
+                                const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, items: [...g.items, newItem] } : g);
+                                updateRegulasiContent(newList);
+                              }}
+                              className="px-2.5 py-1 bg-[#002147] hover:bg-[#003166] text-white rounded-lg text-[9px] font-bold uppercase tracking-wider inline-flex items-center gap-1"
+                            >
+                              <Plus className="h-3 w-3" /> Tambah Baris
+                            </button>
+                          </div>
+
+                          <div className="space-y-3">
+                            {group.items && group.items.length > 0 ? (
+                              group.items.map((item: any, iIdx: number) => (
+                                <div key={iIdx} className="p-4 border border-slate-200 rounded-2xl bg-white space-y-3 relative text-left">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updatedItems = group.items.filter((_: any, i: number) => i !== iIdx).map((item: any, idx: number) => ({
+                                        ...item,
+                                        no: String(idx + 1).padStart(2, '0')
+                                      }));
+                                      const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, items: updatedItems } : g);
+                                      updateRegulasiContent(newList);
+                                    }}
+                                    className="absolute top-3.5 right-3.5 p-1 text-slate-400 hover:text-red-650 rounded-md"
+                                    title="Hapus Regulasi"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pr-8">
+                                    <div className="space-y-1">
+                                      <label className="text-[8px] font-bold text-slate-400 uppercase block">No</label>
+                                      <input
+                                        type="text"
+                                        required
+                                        value={item.no || item.number || ''}
+                                        onChange={(e) => {
+                                          const updatedItems = group.items.map((it: any, i: number) => i === iIdx ? { ...it, no: e.target.value } : it);
+                                          const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, items: updatedItems } : g);
+                                          updateRegulasiContent(newList);
+                                        }}
+                                        className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-bold text-slate-800 bg-slate-50"
+                                      />
+                                    </div>
+                                    <div className="space-y-1 md:col-span-3">
+                                      <label className="text-[8px] font-bold text-slate-400 uppercase block">Nama Regulasi/Aturan <span className="text-red-500">*</span></label>
+                                      <input
+                                        type="text"
+                                        required
+                                        value={item.title}
+                                        onChange={(e) => {
+                                          const updatedItems = group.items.map((it: any, i: number) => i === iIdx ? { ...it, title: e.target.value } : it);
+                                          const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, items: updatedItems } : g);
+                                          updateRegulasiContent(newList);
+                                        }}
+                                        className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-bold text-slate-800"
+                                        placeholder="Undang-Undang Nomor 14 Tahun 2008"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                      <label className="text-[8px] font-bold text-slate-400 uppercase block">Detail/Tentang</label>
+                                      <input
+                                        type="text"
+                                        value={item.detail || ''}
+                                        onChange={(e) => {
+                                          const updatedItems = group.items.map((it: any, i: number) => i === iIdx ? { ...it, detail: e.target.value } : it);
+                                          const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, items: updatedItems } : g);
+                                          updateRegulasiContent(newList);
+                                        }}
+                                        className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-800"
+                                        placeholder="tentang Keterbukaan Informasi Publik"
+                                      />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                      <label className="text-[8px] font-bold text-slate-400 uppercase block">File URL / Path PDF</label>
+                                      <div className="flex gap-2">
+                                        <input
+                                          type="text"
+                                          value={item.fileUrl || item.url || ''}
+                                          onChange={(e) => {
+                                            const updatedItems = group.items.map((it: any, i: number) => i === iIdx ? { ...it, fileUrl: e.target.value } : it);
+                                            const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, items: updatedItems } : g);
+                                            updateRegulasiContent(newList);
+                                          }}
+                                          className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-mono font-medium text-slate-700 bg-slate-50"
+                                          placeholder="/uploads/regulasi/..."
+                                        />
+                                        <label className="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold cursor-pointer inline-flex items-center border border-slate-200">
+                                          {isUploadingRegulasiFile[`${gIdx}-${iIdx}`] ? '...' : 'Upload'}
+                                          <input
+                                            type="file"
+                                            onChange={async (e) => {
+                                              const file = e.target.files?.[0];
+                                              if (!file) return;
+
+                                              setIsUploadingRegulasiFile(prev => ({ ...prev, [`${gIdx}-${iIdx}`]: true }));
+                                              const token = localStorage.getItem('auth_token');
+                                              const formData = new FormData();
+                                              formData.append('folder', 'regulasi');
+                                              formData.append('files', file);
+
+                                              try {
+                                                const res = await fetch(`${API_BASE_URL}/admin/uploads`, {
+                                                  method: 'POST',
+                                                  headers: { Authorization: `Bearer ${token}` },
+                                                  body: formData
+                                                });
+                                                if (res.ok) {
+                                                  const data = await res.json();
+                                                  const url = data.url || (data.uploaded && data.uploaded[0] && data.uploaded[0].url) || '';
+                                                  if (url) {
+                                                    const updatedItems = group.items.map((it: any, i: number) => i === iIdx ? { ...it, fileUrl: url } : it);
+                                                    const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, items: updatedItems } : g);
+                                                    updateRegulasiContent(newList);
+                                                  }
+                                                }
+                                              } catch (err) {
+                                                console.error(err);
+                                              } finally {
+                                                setIsUploadingRegulasiFile(prev => ({ ...prev, [`${gIdx}-${iIdx}`]: false }));
+                                                e.target.value = '';
+                                              }
+                                            }}
+                                            className="hidden"
+                                          />
+                                        </label>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* SOP List Section inside item */}
+                                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                                    <div className="flex items-center justify-between">
+                                      <label className="text-[8px] font-bold text-slate-400 uppercase inline-flex items-center gap-1.5">
+                                        <input
+                                          type="checkbox"
+                                          checked={!!item.isSopList}
+                                          onChange={(e) => {
+                                            const updatedItems = group.items.map((it: any, i: number) => i === iIdx ? {
+                                              ...it,
+                                              isSopList: e.target.checked,
+                                              sops: e.target.checked ? (it.sops || ['']) : []
+                                            } : it);
+                                            const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, items: updatedItems } : g);
+                                            updateRegulasiContent(newList);
+                                          }}
+                                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        Memiliki Daftar SOP?
+                                      </label>
+                                      {item.isSopList && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updatedItems = group.items.map((it: any, i: number) => i === iIdx ? {
+                                              ...it,
+                                              sops: [...(it.sops || []), '']
+                                            } : it);
+                                            const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, items: updatedItems } : g);
+                                            updateRegulasiContent(newList);
+                                          }}
+                                          className="text-[8px] font-bold text-[#002147] hover:underline cursor-pointer"
+                                        >
+                                          + SOP Baru
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {item.isSopList && item.sops && item.sops.length > 0 && (
+                                      <div className="space-y-2 pl-4">
+                                        {item.sops.map((sop: string, sIdx: number) => (
+                                          <div key={sIdx} className="flex gap-2 items-center">
+                                            <input
+                                              type="text"
+                                              required
+                                              value={sop}
+                                              onChange={(e) => {
+                                                const updatedSops = item.sops.map((s: string, idx: number) => idx === sIdx ? e.target.value : s);
+                                                const updatedItems = group.items.map((it: any, i: number) => i === iIdx ? { ...it, sops: updatedSops } : it);
+                                                const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, items: updatedItems } : g);
+                                                updateRegulasiContent(newList);
+                                              }}
+                                              className="flex-1 rounded-lg border border-slate-200 px-2 py-1 text-[10px]"
+                                              placeholder="Contoh: SOP Pelayanan Informasi Publik"
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const updatedSops = item.sops.filter((_: any, idx: number) => idx !== sIdx);
+                                                const updatedItems = group.items.map((it: any, i: number) => i === iIdx ? { ...it, sops: updatedSops, isSopList: updatedSops.length > 0 } : it);
+                                                const newList = regulasiGroups.map((g, i) => i === gIdx ? { ...g, items: updatedItems } : g);
+                                                updateRegulasiContent(newList);
+                                              }}
+                                              className="text-slate-400 hover:text-red-650 cursor-pointer"
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center text-slate-400 py-4 border border-dashed border-slate-200 rounded-xl text-[10px]">
+                                Belum ada berkas regulasi. Klik "+ Tambah Baris" di atas.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-3xl">
+                      Belum ada grup accordion regulasi. Klik "Tambah Grup" di atas.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : ['informasi-publik-berkala', 'informasi-tersedia-setiap-saat', 'info-serta-merta', 'informasi-dikecualikan'].includes(adminEditSlug) ? (
+              <div className="space-y-4 pt-4 border-t border-slate-100 text-left">
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm mb-4">
+                  <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wide">Dokumen Disinkronkan Otomatis</h4>
+                    <p className="text-[11px] text-blue-750 font-semibold leading-relaxed">
+                      Dokumen lampiran untuk halaman ini disinkronkan otomatis secara real-time dari database menu <strong>Download</strong>.
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed mt-1">
+                      Untuk menambah, mengubah, atau menghapus berkas pada halaman ini, silakan buka tab <strong>Download</strong> di panel kiri admin, lalu pilih kategori yang sesuai dengan halaman ini.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Dynamic Sections Editor */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  <div className="flex items-center justify-between pb-2">
+                    <div>
+                      <span className="text-[10px] font-extrabold text-[#002147] uppercase tracking-wider block">
+                        Daftar Seksi Pengantar / Deskripsi Halaman
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-medium block">
+                        Kelola blok paragraf penjelasan, gambar pendukung, dan tata letak per seksi.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newSec: DipSection = {
+                          text: '',
+                          imageUrls: [],
+                          imagePosition: 'right'
+                        };
+                        updateDipSections([...dipSections, newSec]);
+                      }}
+                      className="px-3.5 py-2 bg-[#002147] hover:bg-[#003166] text-white rounded-xl text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer border border-[#002147]/55"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Tambah Seksi
+                    </button>
+                  </div>
+
+                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                    {dipSections.length > 0 ? (
+                      dipSections.map((section, sIdx) => (
+                        <div key={sIdx} className="p-4 border border-slate-200 rounded-2xl bg-slate-50/50 space-y-3 relative text-left">
+                          
+                          {/* Reorder and Delete controls */}
+                          <div className="absolute top-3.5 right-3.5 flex items-center gap-1">
+                            {sIdx > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const arr = [...dipSections];
+                                  [arr[sIdx - 1], arr[sIdx]] = [arr[sIdx], arr[sIdx - 1]];
+                                  updateDipSections(arr);
+                                }}
+                                className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                title="Geser ke atas"
+                              >
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            {sIdx < dipSections.length - 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const arr = [...dipSections];
+                                  [arr[sIdx], arr[sIdx + 1]] = [arr[sIdx + 1], arr[sIdx]];
+                                  updateDipSections(arr);
+                                }}
+                                className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                title="Geser ke bawah"
+                              >
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const arr = dipSections.filter((_, i) => i !== sIdx);
+                                updateDipSections(arr);
+                              }}
+                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
+                              title="Hapus Seksi"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+
+                          <span className="text-[9px] font-extrabold text-[#002147] bg-[#002147]/5 px-2.5 py-1 rounded-lg">
+                            Seksi Deskripsi #{sIdx + 1}
+                          </span>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                            {/* Text Area */}
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-500 uppercase block">Teks Deskripsi / Penjelasan <span className="text-red-500">*</span></label>
+                              <textarea
+                                required
+                                value={section.text}
+                                onChange={(e) => {
+                                  const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, text: e.target.value } : sec);
+                                  updateDipSections(arr);
+                                }}
+                                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-800 bg-white h-[360px] resize-none focus:outline-none"
+                                placeholder="Masukkan penjelasan teks pengantar di sini..."
+                              />
+                            </div>
+
+                            {/* Image / Layout Settings */}
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block">Daftar Gambar Pendukung (Maks. 3 Gambar untuk Mode Bertumpuk)</label>
+                                <div className="space-y-2.5">
+                                  {[0, 1, 2].map((imgIdx) => {
+                                    const currentUrl = section.imageUrls[imgIdx] || '';
+                                    const uploadKey = `${sIdx}-${imgIdx}`;
+
+                                    return (
+                                      <div key={imgIdx} className="space-y-1 bg-white border border-slate-200/80 rounded-xl p-2.5 shadow-sm">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-[8px] font-extrabold text-slate-400 uppercase">Slot Gambar 0{imgIdx + 1}</span>
+                                          {currentUrl && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const newUrls = [...section.imageUrls];
+                                                newUrls.splice(imgIdx, 1); // remove
+                                                const cleaned = newUrls.filter(Boolean);
+                                                const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, imageUrls: cleaned } : sec);
+                                                updateDipSections(arr);
+                                              }}
+                                              className="text-[9px] font-bold text-rose-500 hover:text-rose-700 cursor-pointer border-0 bg-transparent"
+                                            >
+                                              Hapus
+                                            </button>
+                                          )}
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                          <input
+                                            type="text"
+                                            value={currentUrl}
+                                            onChange={(e) => {
+                                              const newUrls = [...section.imageUrls];
+                                              newUrls[imgIdx] = e.target.value;
+                                              const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, imageUrls: newUrls } : sec);
+                                              updateDipSections(arr);
+                                            }}
+                                            className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[10px] font-mono font-medium text-slate-700 bg-slate-50 focus:outline-none"
+                                            placeholder="https://... atau /uploads/..."
+                                          />
+                                          <label className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 hover:text-slate-800 rounded-lg text-[10px] font-bold transition-all cursor-pointer shrink-0 inline-flex items-center border border-slate-200 text-slate-600">
+                                            {isUploadingDipSectionImage[uploadKey] ? '...' : 'Upload'}
+                                            <input
+                                              type="file"
+                                              onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+
+                                                setIsUploadingDipSectionImage(prev => ({ ...prev, [uploadKey]: true }));
+                                                const token = localStorage.getItem('auth_token');
+                                                const formData = new FormData();
+                                                formData.append('folder', 'pages');
+                                                formData.append('files', file);
+
+                                                try {
+                                                  const res = await fetch(`${API_BASE_URL}/admin/uploads`, {
+                                                    method: 'POST',
+                                                    headers: { Authorization: `Bearer ${token}` },
+                                                    body: formData
+                                                  });
+                                                  if (res.ok) {
+                                                    const data = await res.json();
+                                                    const url = data.url || (data.uploaded && data.uploaded[0] && data.uploaded[0].url) || '';
+                                                    if (url) {
+                                                      const newUrls = [...section.imageUrls];
+                                                      newUrls[imgIdx] = url;
+                                                      const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, imageUrls: newUrls } : sec);
+                                                      updateDipSections(arr);
+                                                    }
+                                                  }
+                                                } catch (err) {
+                                                  console.error(err);
+                                                } finally {
+                                                  setIsUploadingDipSectionImage(prev => ({ ...prev, [uploadKey]: false }));
+                                                  e.target.value = '';
+                                                }
+                                              }}
+                                              className="hidden"
+                                            />
+                                          </label>
+                                        </div>
+
+                                        {currentUrl && (
+                                          <div className="mt-1.5 flex justify-center">
+                                            <img
+                                              src={resolveImageUrl(currentUrl)}
+                                              alt={`Preview ${imgIdx + 1}`}
+                                              className="h-12 w-auto object-cover rounded-lg border border-slate-150"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block">Tata Letak / Posisi Gambar</label>
+                                <select
+                                  value={section.imagePosition}
+                                  onChange={(e) => {
+                                    const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, imagePosition: e.target.value as 'left' | 'right' } : sec);
+                                    updateDipSections(arr);
+                                  }}
+                                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 bg-white focus:outline-none"
+                                >
+                                  <option value="right">Gambar di Kanan (Teks di Kiri)</option>
+                                  <option value="left">Gambar di Kiri (Teks di Kanan)</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-8 text-center text-slate-400 text-xs font-medium border border-dashed border-slate-200 rounded-2xl">
+                        Belum ada seksi deskripsi. Silakan klik "Tambah Seksi" di atas.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : ['zona-integrasi', 'keberatan-informasi', 'Permohonan-penyelesaian-sengketa', 'permohonan-penyelesaian-sengketa'].includes(adminEditSlug) ? (
               <div className="space-y-4 pt-2 border-t border-slate-100 text-left">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <div>
@@ -906,13 +1626,35 @@ export default function ManagePages({
                       Tambahkan file upload atau input link URL yang akan ditampilkan pada halaman rujukan.
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setAdminEditPageDocs(prev => [...prev, { title: '', description: '', file_url: '' }])}
-                    className="px-3.5 py-2 bg-[#002147] hover:bg-[#003166] text-white rounded-xl text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer border border-[#002147]/55"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Tambah Berkas/Link
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAdminEditPageDocs(prev => [...prev, { title: '', description: '', file_url: '' }])}
+                      className="px-3.5 py-2 bg-[#002147] hover:bg-[#003166] text-white rounded-xl text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer border border-[#002147]/55"
+                      disabled={isUploadingDocs}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Tambah Berkas/Link
+                    </button>
+                    <label className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer border border-emerald-600 shadow-sm transition-all">
+                      {isUploadingDocs ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-3.5 w-3.5" /> Bulk Upload PDF
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        multiple
+                        accept="application/pdf"
+                        onChange={handleBulkUploadPageDocs}
+                        className="hidden"
+                        disabled={isUploadingDocs}
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 {/* Dynamic List Input Rows */}
@@ -970,27 +1712,54 @@ export default function ManagePages({
                               Upload
                               <input
                                 type="file"
+                                multiple
                                 onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const formData = new FormData();
-                                    formData.append('files', file);
-                                    try {
-                                      const res = await fetch(`${API_BASE_URL}/admin/uploads`, {
-                                        method: 'POST',
-                                        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-                                        body: formData
-                                      });
-                                      if (res.ok) {
-                                        const data = await res.json();
-                                        const uploadedUrl = data.url || data.path || (data.urls && data.urls[0]) || (data.uploaded && data.uploaded[0] && data.uploaded[0].url) || '';
-                                        if (uploadedUrl) {
-                                          setAdminEditPageDocs(prev => prev.map((d, i) => i === idx ? { ...d, file_url: uploadedUrl } : d));
+                                  const files = e.target.files;
+                                  if (!files || files.length === 0) return;
+
+                                  const formData = new FormData();
+                                  formData.append('folder', 'documents');
+                                  for (let i = 0; i < files.length; i++) {
+                                    formData.append('files', files[i]);
+                                  }
+
+                                  try {
+                                    const res = await fetch(`${API_BASE_URL}/admin/uploads`, {
+                                      method: 'POST',
+                                      headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
+                                      body: formData
+                                    });
+                                    if (res.ok) {
+                                      const data = await res.json();
+                                      const uploadedList = data.uploaded || [];
+                                      if (uploadedList.length > 0) {
+                                        // Replace current row with first file
+                                        const firstMatch = uploadedList[0];
+                                        setAdminEditPageDocs(prev => prev.map((d, i) => i === idx ? { 
+                                          ...d, 
+                                          file_url: firstMatch.url,
+                                          title: d.title || (firstMatch.original_name ? firstMatch.original_name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, ' ').replace(/(^\w|\s\w)/g, (m: string) => m.toUpperCase()) : "Dokumen")
+                                        } : d));
+
+                                        // Append subsequent files as new rows
+                                        if (uploadedList.length > 1) {
+                                          const extraDocs = uploadedList.slice(1).map((item: any) => {
+                                            const titleWithoutExt = item.original_name ? item.original_name.replace(/\.[^/.]+$/, "") : "Dokumen";
+                                            const formattedTitle = titleWithoutExt
+                                              .replace(/[_-]+/g, ' ')
+                                              .replace(/(^\w|\s\w)/g, (m: string) => m.toUpperCase());
+                                            return {
+                                              title: formattedTitle,
+                                              description: '',
+                                              file_url: item.url
+                                            };
+                                          });
+                                          setAdminEditPageDocs(prev => [...prev, ...extraDocs]);
                                         }
                                       }
-                                    } catch (err) {
-                                      console.error(err);
                                     }
+                                  } catch (err) {
+                                    console.error(err);
                                   }
                                 }}
                                 className="hidden"

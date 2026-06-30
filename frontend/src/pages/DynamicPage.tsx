@@ -243,7 +243,7 @@ export default function DynamicPage({
             expandedRegulasi={expandedRegulasi}
             toggleRegulasi={toggleRegulasi}
           />
-        ) : activeSlug === 'download' || activeSlug === 'informasi-dikecualikan' ? (
+        ) : activeSlug === 'download' ? (
           <DownloadsPage
             dbDownloads={dbDownloads}
             searchTerm={searchTerm}
@@ -280,12 +280,14 @@ export default function DynamicPage({
           />
         ) : activeSlug === 'informasi-publik-berkala' ||
           activeSlug === 'info-serta-merta' ||
-          activeSlug === 'informasi-tersedia-setiap-saat' ? (
+          activeSlug === 'informasi-tersedia-setiap-saat' ||
+          activeSlug === 'informasi-dikecualikan' ? (
           <InfoPublikTable
             activeSlug={activeSlug}
             pageData={pageData}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
+            dbDownloads={dbDownloads}
           />
         ) : activeSlug === 'zona-integrasi' ? (
           <ZonaIntegrasi pageData={pageData} />

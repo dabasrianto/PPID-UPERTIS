@@ -90,7 +90,27 @@ export default function DownloadTable({
           <div className={gridColsClassName || "grid md:grid-cols-2 gap-4"}>
             {items.map((item, idx) => {
               const itemTitle = item.label || item.title || '';
-              const itemFileUrl = item.href || item.file_url || '#';
+              const rawFileUrl = item.href || item.file_url || '';
+              
+              // Parse files
+              let parsedFilesList: Array<{ name: string; url: string }> = [];
+              if (rawFileUrl.trim().startsWith('[')) {
+                try {
+                  const parsed = JSON.parse(rawFileUrl);
+                  if (Array.isArray(parsed)) {
+                    parsedFilesList = parsed;
+                  }
+                } catch (e) {
+                  console.error('Failed to parse file_url JSON in DownloadTable:', e);
+                }
+              }
+
+              if (parsedFilesList.length === 0 && rawFileUrl) {
+                // Single file / legacy format
+                parsedFilesList = [{ name: 'Unduh Berkas', url: rawFileUrl }];
+              }
+
+              const hasMultipleFiles = parsedFilesList.length > 1;
               const isDownloadItem = item.type === 'DownloadItem' || item.file_url;
               const count = item.downloadsCount !== undefined ? item.downloadsCount : item.downloads_count;
 
@@ -131,21 +151,40 @@ export default function DownloadTable({
                           )
                         )}
                       </span>
+                      {/* Render multiple download buttons inline if document has multiple files */}
+                      {hasMultipleFiles && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {parsedFilesList.map((file, fIdx) => (
+                            <a
+                              key={fIdx}
+                              href={file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => incrementDownloadCount(item.id || '', file.url)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-amber-400 hover:text-[#002147] border border-slate-200 text-[#002147] hover:border-amber-300 rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
+                            >
+                              <Download className="h-3 w-3" /> {file.name || `Berkas ${fIdx + 1}`}
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {isDownloadItem ? (
-                    <button
-                      onClick={() => incrementDownloadCount(item.id || '', itemFileUrl)}
-                      className="p-2 bg-[#002147] hover:bg-amber-500 text-white hover:text-[#002147] rounded-lg transition-all inline-flex items-center justify-center cursor-pointer shrink-0 border border-[#002147]/50"
-                      title="Unduh Berkas"
-                    >
-                      <Download className="h-4 w-4" />
-                    </button>
+                    !hasMultipleFiles && (
+                      <button
+                        onClick={() => incrementDownloadCount(item.id || '', parsedFilesList[0]?.url || '#')}
+                        className="p-2 bg-[#002147] hover:bg-amber-500 text-white hover:text-[#002147] rounded-lg transition-all inline-flex items-center justify-center cursor-pointer shrink-0 border border-[#002147]/55"
+                        title="Unduh Berkas"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                    )
                   ) : (
                     handleNavigation && (
                       <button
-                        onClick={() => handleNavigation(itemFileUrl)}
+                        onClick={() => handleNavigation(rawFileUrl)}
                         className="px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-[#002147] rounded-lg text-[10px] font-bold uppercase transition-all inline-flex items-center gap-1 cursor-pointer shrink-0 border border-slate-200/50"
                       >
                         <ArrowRight className="h-3.5 w-3.5" /> Buka

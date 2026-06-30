@@ -1490,7 +1490,7 @@ const heroImages = useMemo(() => {
           image2: editTugasImage2,
           image3: editTugasImage3
         });
-      } else if (['informasi-publik-berkala', 'informasi-tersedia-setiap-saat', 'info-serta-merta', 'informasi-dikecualikan', 'zona-integrasi', 'keberatan-informasi', 'Permohonan-penyelesaian-sengketa', 'permohonan-penyelesaian-sengketa'].includes(adminEditSlug)) {
+      } else if (['zona-integrasi', 'keberatan-informasi', 'Permohonan-penyelesaian-sengketa', 'permohonan-penyelesaian-sengketa'].includes(adminEditSlug)) {
         if (adminEditSlug === 'keberatan-informasi') {
           pageContent = JSON.stringify({
             intro: adminEditContent,
@@ -1879,6 +1879,9 @@ setPermohonanActionLoading(false);
                     adminDownloads={adminDownloads}
                     openEditModal={openEditModal}
                     handleDeleteCrudItem={handleDeleteCrudItem}
+                    API_BASE_URL={API_BASE_URL}
+                    fetchAdminData={fetchAdminData}
+                    setAdminGlobalMessage={setAdminGlobalMessage}
                   />
                 )}
 
