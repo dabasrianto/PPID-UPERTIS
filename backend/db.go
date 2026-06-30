@@ -645,6 +645,8 @@ func ensureDefaultPages() {
 		{"tata-nilai", "7 Tata Nilai UPERTIS", "Internalisasi nilai-nilai utama sivitas akademika"},
 		{"fasilitas", "Fasilitas Kampus", "Eksplorasi sarana dan prasarana modern kami"},
 		{"tugas-fungsi", "Tugas & Fungsi", "Uraian tugas pokok dan fungsi unit kerja"},
+		{"tugas-dan-fungsi", "Tugas & Fungsi PPID", "Kedudukan hukum, wewenang operasional, dan komitmen pelayanan PPID UPERTIS"},
+		{"regulasi", "Regulasi KIP", "Landasan hukum dan dasar regulasi Keterbukaan Informasi Publik"},
 		{"profil", "Profil Kampus", "Profil Lengkap Universitas Perintis Indonesia"},
 		{"profil-lppm", "Profil LPPM", "Profil Lembaga Penelitian dan Pengabdian Masyarakat UPERTIS"},
 		{"permohonan-informasi", "Formulir Permohonan Informasi Publik", "Layanan pengajuan dokumen dan informasi publik secara online"},
