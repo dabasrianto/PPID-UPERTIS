@@ -623,6 +623,7 @@ func initDB() {
 	}
 
 	ensureDefaultPages()
+	ensureDefaultDownloads()
 	ensureDefaultSettings()
 	migratePostsTable()
 	migrateAuthOTPTables()
@@ -925,6 +926,47 @@ func syncGelarFromJSON(db *sql.DB) {
 		log.Println("Warning: failed to commit gelar updates:", err)
 	} else {
 		log.Printf("✓ Successfully synchronized %d academic titles (gelar) from JSON\n", updatedCount)
+	}
+}
+
+func ensureDefaultDownloads() {
+	defaultDownloads := []struct {
+		title       string
+		description string
+		fileURL     string
+		category    string
+	}{
+		{"Tata Cara keberatan Informasi Publik", "Panduan tata cara mengajukan keberatan atas layanan informasi publik.", "https://ppid.upertis.ac.id/?wpdmdl=2869", "umum"},
+		{"Tata Cara pengajuan penyelesaian sengketa Informasi Publik", "Panduan tata cara pengajuan penyelesaian sengketa informasi publik.", "https://ppid.upertis.ac.id/?wpdmdl=2835", "umum"},
+		{"Tata Cara Pengajuan Permohonan Informasi Publik", "Panduan tata cara permohonan informasi publik secara online/offline.", "https://ppid.upertis.ac.id/?wpdmdl=2833", "umum"},
+		{"DATA AKREDITASI PRODI (Informasi Setiap Saat)", "Sertifikat dan dokumen akreditasi seluruh program studi di lingkungan UPERTIS.", "https://ppid.upertis.ac.id/?wpdmdl=2831", "ppid-setiap-saat"},
+		{"Daftar Informasi Dikecualikan (Informasi Setiap Saat)", "Daftar informasi publik UPERTIS yang dikecualikan berdasarkan uji konsekuensi.", "https://ppid.upertis.ac.id/?wpdmdl=2829", "ppid-dikecualikan"},
+		{"Daftar Informasi Publik Upertis (informasi Setiap Saat)", "Daftar informasi publik (DIP) UPERTIS yang wajib disediakan setiap saat.", "https://ppid.upertis.ac.id/?wpdmdl=2827", "ppid-setiap-saat"},
+		{"CAPAIAN UPERTIS BERDASARKAN 9 PILAR", "Dokumen laporan capaian Universitas Perintis Indonesia berdasarkan instrumen 9 pilar.", "https://ppid.upertis.ac.id/?wpdmdl=2825", "umum"},
+		{"Laporan Layanan Informasi 2025", "Laporan tahunan kinerja pelayanan informasi publik PPID UPERTIS tahun 2025.", "https://ppid.upertis.ac.id/?wpdmdl=2823", "ppid-berkala"},
+		{"Laporan Layanan Informasi 2024", "Laporan tahunan kinerja pelayanan informasi publik PPID UPERTIS tahun 2024.", "https://ppid.upertis.ac.id/?wpdmdl=2821", "ppid-berkala"},
+		{"OTK UPERTIS", "Dokumen resmi Organisasi dan Tata Kerja (OTK) Universitas Perintis Indonesia.", "https://ppid.upertis.ac.id/?wpdmdl=2819", "ppid-setiap-saat"},
+		{"RENSTRA UPERTIS", "Dokumen Rencana Strategis (Renstra) Universitas Perintis Indonesia.", "https://ppid.upertis.ac.id/?wpdmdl=2817", "ppid-setiap-saat"},
+		{"RIP UPERTIS edit 9 Des 2022", "Rencana Induk Pengembangan (RIP) Universitas Perintis Indonesia.", "https://ppid.upertis.ac.id/?wpdmdl=2815", "ppid-setiap-saat"},
+		{"STATUTA UPERTIS", "Statuta Universitas Perintis Indonesia sebagai landasan hukum operasional.", "https://ppid.upertis.ac.id/?wpdmdl=2813", "ppid-setiap-saat"},
+		{"RKAT FIX 2023-2024 UPERTIS", "Rencana Kerja dan Anggaran Tahunan (RKAT) Universitas Perintis Indonesia.", "https://ppid.upertis.ac.id/?wpdmdl=2811", "ppid-berkala"},
+		{"REVISI Peraturan Akademik UPERTIS 2024", "Buku pedoman peraturan akademik Universitas Perintis Indonesia revisi terbaru 2024.", "https://ppid.upertis.ac.id/?wpdmdl=2809", "ppid-setiap-saat"},
+		{"LAPORAN KINERJA 2022 2023", "Laporan akuntabilitas kinerja Universitas Perintis Indonesia periode 2022/2023.", "https://ppid.upertis.ac.id/?wpdmdl=2807", "ppid-berkala"},
+		{"LAPORAN KINERJA 2021 2022", "Laporan akuntabilitas kinerja Universitas Perintis Indonesia periode 2021/2022.", "https://ppid.upertis.ac.id/?wpdmdl=2805", "ppid-berkala"},
+	}
+
+	for _, d := range defaultDownloads {
+		_, err := db.ExecContext(context.Background(),
+			`INSERT INTO downloads (title, description, file_url, category, active)
+			 SELECT $1, $2, $3, $4, true
+			 WHERE NOT EXISTS (
+				 SELECT 1 FROM downloads WHERE file_url = $3
+			 )`,
+			d.title, d.description, d.fileURL, d.category,
+		)
+		if err != nil {
+			log.Printf("Warning: Failed to seed download %s: %v", d.title, err)
+		}
 	}
 }
 
