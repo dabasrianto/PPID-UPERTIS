@@ -1346,8 +1346,8 @@ const heroImages = useMemo(() => {
       try {
         const parsed = JSON.parse(item.content);
         if (parsed && typeof parsed === 'object') {
-          setEditTugasList(parsed.tugas || defaultTugasList);
-          setEditFungsiList(parsed.fungsi || defaultFungsiList);
+          setEditTugasList(Array.isArray(parsed.tugas) && parsed.tugas.length > 0 ? parsed.tugas : defaultTugasList);
+          setEditFungsiList(Array.isArray(parsed.fungsi) && parsed.fungsi.length > 0 ? parsed.fungsi : defaultFungsiList);
           setEditTugasImage1(parsed.image1 || '');
           setEditTugasImage2(parsed.image2 || '');
           setEditTugasImage3(parsed.image3 || '');
