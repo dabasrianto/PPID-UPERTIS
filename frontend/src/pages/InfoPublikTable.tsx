@@ -42,7 +42,15 @@ export default function InfoPublikTable({
   const rawContent = pageData?.content || '';
   let docs: Array<{ title: string; description?: string; file_url: string }> = [];
   let introText = '';
-  let sections: Array<{ text: string; imageUrl?: string; imageUrls?: string[]; imagePosition?: 'left' | 'right' }> = [];
+  let sections: Array<{
+    title?: string;
+    subtitle?: string;
+    text: string;
+    imageUrl?: string;
+    imageUrls?: string[];
+    imagePosition?: 'left' | 'right';
+    cards?: Array<{ title: string; subtitle: string; url: string; icon: string }>;
+  }> = [];
   let isJson = false;
 
   try {
