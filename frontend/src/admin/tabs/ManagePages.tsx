@@ -370,6 +370,66 @@ export default function ManagePages({
     }));
   };
 
+  // Local state for Visi Misi
+  const [visiText, setVisiText] = React.useState('');
+  const [misiList, setMisiList] = React.useState<string[]>([]);
+
+  // Sync parent state with local states for Visi Misi when modal opens/changes
+  React.useEffect(() => {
+    if (!editModalOpen || editModalType !== 'page' || adminEditSlug !== 'visi-misi') {
+      setVisiText('');
+      setMisiList([]);
+      return;
+    }
+
+    const defaultMisi = [
+      "Menyediakan pelayanan informasi publik yang cepat, tepat waktu, dan akurat.",
+      "Mengembangkan sistem pengelolaan dokumen berbasis teknologi informasi yang aman dan mudah diakses.",
+      "Meningkatkan kapasitas sumber daya pengelola layanan informasi secara berkelanjutan.",
+      "Mewujudkan tata kelola perguruan tinggi yang bersih, transparan, dan akuntabel."
+    ];
+
+    if (adminEditContent) {
+      const trimmed = adminEditContent.trim();
+      if (trimmed.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed && typeof parsed === 'object') {
+            setVisiText(parsed.visi || '');
+            setMisiList(Array.isArray(parsed.misi) ? parsed.misi : defaultMisi);
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to parse Visi Misi content JSON:', e);
+        }
+      }
+      // Fallback legacy format
+      setVisiText(adminEditContent);
+      setMisiList(defaultMisi);
+    } else {
+      setVisiText("Menjadi Pejabat Pengelola Informasi dan Dokumentasi (PPID) yang unggul, terpercaya, dan transparan dalam pelayanan informasi publik di lingkungan Universitas Perintis Indonesia.");
+      setMisiList(defaultMisi);
+    }
+  }, [editModalOpen, editModalType, adminEditSlug, adminEditContent]);
+
+  // Propagate local states back to parent state as serialized JSON
+  const updateVisiMisiContent = (fields: {
+    visi?: string;
+    misi?: string[];
+  }) => {
+    const finalVisi = fields.visi !== undefined ? fields.visi : visiText;
+    const finalMisi = fields.misi !== undefined ? fields.misi : misiList;
+
+    if (fields.visi !== undefined) setVisiText(fields.visi);
+    if (fields.misi !== undefined) setMisiList(fields.misi);
+
+    setAdminEditContent(JSON.stringify({
+      visi: finalVisi,
+      misi: finalMisi
+    }));
+  };
+
+
 
   const handleBulkUploadPageDocs = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -1200,6 +1260,76 @@ export default function ManagePages({
                     placeholder="Masukkan penjelasan tambahan di bawah bagan jika ada..."
                     className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs focus:outline-none bg-slate-50 h-28 font-medium text-slate-805"
                   />
+                </div>
+              </div>
+            )}
+
+            {/* --- EDITOR VISI & MISI PPID --- */}
+            {adminEditSlug === 'visi-misi' && (
+              <div className="space-y-6 pt-2 border-t border-slate-100 text-left animate-in fade-in duration-200">
+                <div>
+                  <span className="text-[10px] font-extrabold text-[#002147] uppercase tracking-wider block">
+                    PENGATURAN VISI & MISI PPID
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
+                    Modifikasi teks pernyataan Visi dan daftar poin Misi strategis PPID.
+                  </span>
+                </div>
+
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">Pernyataan Visi PPID</label>
+                  <textarea
+                    required
+                    value={visiText}
+                    onChange={(e) => updateVisiMisiContent({ visi: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all bg-slate-50 font-serif italic text-slate-805 h-20 resize-none font-medium"
+                    placeholder="Masukkan teks visi PPID..."
+                  />
+                </div>
+
+                <div className="space-y-3 p-4 border border-slate-200 rounded-2xl bg-slate-50/50">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">
+                      Daftar Misi PPID (Checklist Poin)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateVisiMisiContent({ misi: [...misiList, ''] })}
+                      className="text-[9px] font-bold text-blue-600 hover:underline cursor-pointer border-0 bg-transparent font-sans"
+                    >
+                      + Tambah Poin Misi
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {misiList.map((item, idx) => (
+                      <div key={idx} className="flex gap-2 items-start">
+                        <span className="text-[10px] font-bold text-slate-400 font-mono w-4 shrink-0 text-right mt-2">{idx + 1}.</span>
+                        <textarea
+                          required
+                          value={item}
+                          onChange={(e) => {
+                            const updated = [...misiList];
+                            updated[idx] = e.target.value;
+                            updateVisiMisiContent({ misi: updated });
+                          }}
+                          className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs focus:outline-none bg-white font-semibold text-slate-700 h-14 resize-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = misiList.filter((_, i) => i !== idx);
+                            updateVisiMisiContent({ misi: updated });
+                          }}
+                          className="text-rose-500 hover:text-rose-700 text-xs px-2 border-0 bg-transparent cursor-pointer font-bold mt-2"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {misiList.length === 0 && (
+                      <p className="text-[11px] text-slate-400 italic">Belum ada item ditambahkan.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

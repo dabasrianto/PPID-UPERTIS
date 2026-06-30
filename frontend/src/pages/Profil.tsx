@@ -75,6 +75,44 @@ export default function Profil({ pageData }: ProfilProps) {
     }
   }
 
+  // Parse Visi Misi JSON
+  let ppidVisi = '';
+  let ppidMisi = [
+    "Menyediakan pelayanan informasi publik yang cepat, tepat waktu, dan akurat.",
+    "Mengembangkan sistem pengelolaan dokumen berbasis teknologi informasi yang aman dan mudah diakses.",
+    "Meningkatkan kapasitas sumber daya pengelola layanan informasi secara berkelanjutan.",
+    "Mewujudkan tata kelola perguruan tinggi yang bersih, transparan, dan akuntabel."
+  ];
+
+  if (extraData.visiMisi?.content) {
+    const trimmed = extraData.visiMisi.content.trim();
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === 'object') {
+          ppidVisi = parsed.visi || '';
+          if (Array.isArray(parsed.misi)) ppidMisi = parsed.misi;
+        }
+      } catch (e) {
+        console.error('Failed to parse dynamic visi-misi JSON:', e);
+        ppidVisi = extraData.visiMisi.content;
+      }
+    } else {
+      ppidVisi = extraData.visiMisi.content;
+    }
+  } else {
+    // Check if parent pageData (profil) has it (for legacy config)
+    if (parsedJson?.visi) {
+      ppidVisi = parsedJson.visi;
+    } else {
+      ppidVisi = "Menjadi Pejabat Pengelola Informasi dan Dokumentasi (PPID) yang unggul, terpercaya, dan transparan dalam pelayanan informasi publik di lingkungan Universitas Perintis Indonesia.";
+    }
+    if (parsedJson?.misi && Array.isArray(parsedJson.misi)) {
+      ppidMisi = parsedJson.misi;
+    }
+  }
+
+
 
   return (
     <div className="space-y-12 animate-in fade-in duration-200 text-left w-full py-6">
@@ -222,13 +260,7 @@ export default function Profil({ pageData }: ProfilProps) {
               <Target className="h-6 w-6 text-amber-400" /> Visi PPID
             </h3>
             <p className="text-xs lg:text-sm text-slate-200 leading-relaxed font-medium font-serif italic pt-2">
-              {parsedJson?.visi ? `"${parsedJson.visi}"` :
-               extraData.visiMisi?.content ? (
-                 <span dangerouslySetInnerHTML={{ __html: preprocessPostContent(extraData.visiMisi.content) }} />
-               ) : (
-                 '"Menjadi Pejabat Pengelola Informasi dan Dokumentasi (PPID) yang unggul, terpercaya, dan transparan dalam pelayanan informasi publik di lingkungan Universitas Perintis Indonesia."'
-               )
-              }
+              {ppidVisi ? `"${ppidVisi}"` : '"-visi belum diisi-"'}
             </p>
           </div>
         </div>
@@ -244,31 +276,16 @@ export default function Profil({ pageData }: ProfilProps) {
             </h3>
           </div>
           <div className="space-y-4 text-xs text-slate-655 font-medium">
-            {parsedJson?.misi && Array.isArray(parsedJson.misi) ? (
-              parsedJson.misi.map((m: string, idx: number) => (
-                <div key={idx} className="flex gap-3 items-start text-left">
-                  <span className="h-6 w-6 rounded-lg bg-slate-50 border border-slate-200 text-[#002147] font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                    {idx + 1}
-                  </span>
-                  <span className="leading-relaxed">{m}</span>
-                </div>
-              ))
-            ) : (
-              <div className="space-y-3.5">
-                {[
-                  "Menyediakan pelayanan informasi publik yang cepat, tepat waktu, dan akurat.",
-                  "Mengembangkan sistem pengelolaan dokumen berbasis teknologi informasi yang aman dan mudah diakses.",
-                  "Meningkatkan kapasitas sumber daya pengelola layanan informasi secara berkelanjutan.",
-                  "Mewujudkan tata kelola perguruan tinggi yang bersih, transparan, dan akuntabel."
-                ].map((m, idx) => (
-                  <div key={idx} className="flex gap-3 items-start text-left">
-                    <span className="h-6 w-6 rounded-lg bg-slate-50 border border-slate-200 text-[#002147] font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <span className="leading-relaxed">{m}</span>
-                  </div>
-                ))}
+            {ppidMisi.map((m: string, idx: number) => (
+              <div key={idx} className="flex gap-3 items-start text-left">
+                <span className="h-6 w-6 rounded-lg bg-slate-50 border border-slate-200 text-[#002147] font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                  {idx + 1}
+                </span>
+                <span className="leading-relaxed">{m}</span>
               </div>
+            ))}
+            {ppidMisi.length === 0 && (
+              <p className="text-[11px] text-slate-400 italic">Belum ada misi ditambahkan.</p>
             )}
           </div>
         </div>
