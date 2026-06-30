@@ -291,7 +291,7 @@ export default function DynamicPage({
           />
         ) : activeSlug === 'zona-integrasi' ? (
           <ZonaIntegrasi pageData={pageData} />
-        ) : activeSlug === 'tugas-dan-fungsi' ? (
+        ) : ['tugas-dan-fungsi', 'tugas-fungsi'].includes(activeSlug) ? (
           <TugasFungsi pageData={pageData} />
         ) : activeSlug === 'Permohonan-penyelesaian-sengketa' || activeSlug === 'permohonan-penyelesaian-sengketa' ? (
           <SengketaInformasi pageData={pageData} />

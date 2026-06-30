@@ -776,7 +776,7 @@ export default function ManagePages({
             )}
 
             {/* --- EDITOR TUGAS & FUNGSI PPID --- */}
-            {adminEditSlug === 'tugas-dan-fungsi' && (
+            {['tugas-dan-fungsi', 'tugas-fungsi'].includes(adminEditSlug) && (
               <div className="space-y-6 pt-2 border-t border-slate-100 text-left">
                 <div>
                   <span className="text-[10px] font-extrabold text-[#002147] uppercase tracking-wider block">
@@ -2659,7 +2659,7 @@ export default function ManagePages({
                   </div>
                 )}
               </div>
-            ) : (
+            ) : ['profil', 'visi-misi', 'tugas-dan-fungsi', 'tugas-fungsi', 'struktur-organisasi-2'].includes(adminEditSlug) ? null : (
               <div className="space-y-1 text-left">
                 <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">Konten Isi Halaman (HTML/Markdown)</label>
                 <textarea

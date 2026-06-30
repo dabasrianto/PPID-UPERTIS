@@ -663,7 +663,7 @@ const heroImages = useMemo(() => {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          const ppidPageSlugs = ['profil', 'visi-misi', 'maklumat', 'struktur-organisasi-2', 'tugas-dan-fungsi', 'regulasi', 'informasi-publik-berkala', 'informasi-tersedia-setiap-saat', 'info-serta-merta', 'zona-integrasi', 'jadwal-layanan-informasi', 'informasi-dikecualikan', 'keberatan-informasi', 'Permohonan-penyelesaian-sengketa', 'permohonan-penyelesaian-sengketa'];
+          const ppidPageSlugs = ['profil', 'visi-misi', 'maklumat', 'struktur-organisasi-2', 'tugas-dan-fungsi', 'tugas-fungsi', 'regulasi', 'informasi-publik-berkala', 'informasi-tersedia-setiap-saat', 'info-serta-merta', 'zona-integrasi', 'jadwal-layanan-informasi', 'informasi-dikecualikan', 'keberatan-informasi', 'Permohonan-penyelesaian-sengketa', 'permohonan-penyelesaian-sengketa'];
           setAdminPages(data.filter(p => ppidPageSlugs.includes(p.slug)));
         }
       })
@@ -1342,7 +1342,7 @@ const heroImages = useMemo(() => {
         setEditProfilImage3('');
         setAdminEditContent(item.content || '');
       }
-    } else if (type === 'page' && item.slug === 'tugas-dan-fungsi') {
+    } else if (type === 'page' && ['tugas-dan-fungsi', 'tugas-fungsi'].includes(item.slug)) {
       try {
         const parsed = JSON.parse(item.content);
         if (parsed && typeof parsed === 'object') {
@@ -1481,7 +1481,7 @@ const heroImages = useMemo(() => {
           image2: editProfilImage2,
           image3: editProfilImage3
         });
-      } else if (adminEditSlug === 'tugas-dan-fungsi') {
+      } else if (['tugas-dan-fungsi', 'tugas-fungsi'].includes(adminEditSlug)) {
         pageContent = JSON.stringify({
           tugas: editTugasList,
           fungsi: editFungsiList,
