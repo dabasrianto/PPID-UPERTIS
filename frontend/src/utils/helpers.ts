@@ -126,7 +126,7 @@ export const parseRegulasiHTML = (htmlContent?: string) => {
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        return parsed;
+        return parsed.length > 0 ? parsed : defaultRegulasiData;
       }
     } catch (e) {
       console.error('Failed to parse htmlContent JSON in parseRegulasiHTML:', e);

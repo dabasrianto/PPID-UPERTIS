@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronLeft, Plus, Trash2, FileText, Edit, ArrowUp, ArrowDown, Upload, Loader2, Info } from 'lucide-react';
-import { resolveImageUrl, parseRegulasiHTML } from '../../utils/helpers';
+import { resolveImageUrl, parseRegulasiHTML, defaultRegulasiData } from '../../utils/helpers';
 
 interface PageDoc {
   title: string;
@@ -200,7 +200,7 @@ export default function ManagePages({
       if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
         try {
           const parsed = JSON.parse(trimmed);
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
             setRegulasiGroups(parsed);
             return;
           }
@@ -211,9 +211,9 @@ export default function ManagePages({
 
       // Text-based fallback: parse using parseRegulasiHTML
       const parsed = parseRegulasiHTML(adminEditContent);
-      setRegulasiGroups(parsed);
+      setRegulasiGroups(parsed.length > 0 ? parsed : defaultRegulasiData);
     } else {
-      setRegulasiGroups([]);
+      setRegulasiGroups(defaultRegulasiData);
     }
   }, [editModalOpen, editModalType, adminEditSlug, adminEditContent]);
 
