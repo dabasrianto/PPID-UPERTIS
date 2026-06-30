@@ -867,6 +867,18 @@ const heroImages = useMemo(() => {
       window.history.pushState(null, '', `/halaman/${slug}`);
     }
 
+    const isStaticSlug = ['download', 'galeri', 'kontak', 'permohonan-informasi'].includes(slug);
+    if (isStaticSlug) {
+      setPageData({
+        id: slug,
+        title: slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+        content: '',
+        slug: slug
+      });
+      setIsPageLoading(false);
+      return;
+    }
+
     fetch(`${API_BASE_URL}/pages/${slug}`)
       .then(res => {
         if (!res.ok) throw new Error('Halaman tidak ditemukan');
