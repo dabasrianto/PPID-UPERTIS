@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
-  Clock, Calendar, ShieldAlert, ShieldCheck, X, Layers, FileDown, Info, FileText
+  Clock, Calendar, ShieldAlert, ShieldCheck, X, Layers, FileDown, Info, FileText,
+  Building, CheckCircle, ClipboardList, Users, User, BookOpen, Book, Link, TrendingUp, Briefcase, HelpCircle
 } from 'lucide-react';
 import DownloadTable from '../components/DownloadTable';
 import { resolveImageUrl, preprocessPostContent } from '../utils/helpers';
@@ -13,6 +14,22 @@ interface InfoPublikTableProps {
   setSearchTerm: (term: string) => void;
   dbDownloads?: any[];
 }
+
+const iconMap: Record<string, React.ComponentType<any>> = {
+  building: Building,
+  check: CheckCircle,
+  clipboard: ClipboardList,
+  users: Users,
+  user: User,
+  bookOpen: BookOpen,
+  book: Book,
+  calendar: Calendar,
+  fileText: FileText,
+  link: Link,
+  trendingUp: TrendingUp,
+  briefcase: Briefcase,
+  help: HelpCircle
+};
 
 export default function InfoPublikTable({
   activeSlug,
@@ -179,13 +196,51 @@ export default function InfoPublikTable({
                     hasImage ? (isImageLeft ? 'lg:order-2' : 'lg:order-1') : ''
                   }`}
                 >
-                  {sIdx === 0 && (
+                  {sIdx === 0 && !section.title && (
                     <h3 className="text-xs font-bold text-[#002147] uppercase tracking-wider mb-2">Pengantar & Ketentuan</h3>
                   )}
-                  <div
-                    className="html-content text-xs lg:text-sm text-slate-655 leading-relaxed space-y-3"
-                    dangerouslySetInnerHTML={{ __html: preprocessPostContent(section.text) }}
-                  />
+                  {section.title && (
+                    <h3 className="text-xs font-extrabold text-[#002147] uppercase tracking-wider mb-2">
+                      {section.title}
+                    </h3>
+                  )}
+                  {section.subtitle && (
+                    <p className="text-[11px] text-slate-400 mb-4 leading-relaxed font-medium">
+                      {section.subtitle}
+                    </p>
+                  )}
+                  {section.cards && section.cards.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2 mb-4">
+                      {section.cards.map((card: any, cIdx: number) => {
+                        const CardIcon = iconMap[card.icon] || Link;
+                        return (
+                          <a
+                            key={cIdx}
+                            href={card.url}
+                            className="flex items-center gap-3 p-4 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-2xl transition-all group"
+                          >
+                            <div className="p-2.5 bg-white text-blue-700 rounded-xl shadow-sm group-hover:bg-[#002147] group-hover:text-white transition-all shrink-0">
+                              <CardIcon className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <span className="text-xs font-bold text-slate-800 block">
+                                {card.title}
+                              </span>
+                              <span className="text-[10px] text-slate-400 block mt-0.5 leading-normal">
+                                {card.subtitle}
+                              </span>
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {section.text && section.text.trim().length > 0 && (
+                    <div
+                      className="html-content text-xs lg:text-sm text-slate-655 leading-relaxed space-y-3"
+                      dangerouslySetInnerHTML={{ __html: preprocessPostContent(section.text) }}
+                    />
+                  )}
                 </div>
 
                 {/* Image Column */}

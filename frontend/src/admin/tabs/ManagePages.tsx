@@ -223,8 +223,18 @@ export default function ManagePages({
     setAdminEditContent(JSON.stringify(groups));
   };
   // Local state for DIP pages text description sections
+  interface DipCard {
+    title: string;
+    subtitle: string;
+    url: string;
+    icon: string;
+  }
+
   interface DipSection {
+    title?: string;
+    subtitle?: string;
     text: string;
+    cards?: DipCard[];
     imageUrls: string[];
     imagePosition: 'left' | 'right';
   }
@@ -246,7 +256,10 @@ export default function ManagePages({
           if (parsed && typeof parsed === 'object') {
             if (Array.isArray(parsed.sections)) {
               const mapped = parsed.sections.map((sec: any) => ({
+                title: sec.title || '',
+                subtitle: sec.subtitle || '',
                 text: sec.text || '',
+                cards: Array.isArray(sec.cards) ? sec.cards : [],
                 imageUrls: Array.isArray(sec.imageUrls) ? sec.imageUrls : (sec.imageUrl ? [sec.imageUrl] : []),
                 imagePosition: sec.imagePosition || 'right'
               }));
@@ -254,7 +267,7 @@ export default function ManagePages({
               return;
             } else {
               // Legacy JSON format (has intro but no sections list)
-              setDipSections([{ text: parsed.intro || '', imageUrls: [], imagePosition: 'right' }]);
+              setDipSections([{ title: '', subtitle: '', text: parsed.intro || '', cards: [], imageUrls: [], imagePosition: 'right' }]);
               return;
             }
           }
@@ -263,7 +276,7 @@ export default function ManagePages({
         }
       }
       // Plain text legacy format
-      setDipSections([{ text: adminEditContent, imageUrls: [], imagePosition: 'right' }]);
+      setDipSections([{ title: '', subtitle: '', text: adminEditContent, cards: [], imageUrls: [], imagePosition: 'right' }]);
     } else {
       setDipSections([]);
     }
@@ -1887,19 +1900,166 @@ export default function ManagePages({
                           </span>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                            {/* Text Area */}
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-bold text-slate-500 uppercase block">Teks Deskripsi / Penjelasan <span className="text-red-500">*</span></label>
-                              <textarea
-                                required
-                                value={section.text}
-                                onChange={(e) => {
-                                  const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, text: e.target.value } : sec);
-                                  updateDipSections(arr);
-                                }}
-                                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-800 bg-white h-[360px] resize-none focus:outline-none"
-                                placeholder="Masukkan penjelasan teks pengantar di sini..."
-                              />
+                            {/* Visual Sections Details Editor */}
+                            <div className="space-y-4 text-left">
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block">Judul Seksi (Header)</label>
+                                <input
+                                  type="text"
+                                  value={section.title || ''}
+                                  onChange={(e) => {
+                                    const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, title: e.target.value } : sec);
+                                    updateDipSections(arr);
+                                  }}
+                                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 bg-white"
+                                  placeholder="Contoh: 1. Dokumen Resmi Perguruan Tinggi"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block">Subjudul / Deskripsi Seksi</label>
+                                <input
+                                  type="text"
+                                  value={section.subtitle || ''}
+                                  onChange={(e) => {
+                                    const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, subtitle: e.target.value } : sec);
+                                    updateDipSections(arr);
+                                  }}
+                                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-800 bg-white"
+                                  placeholder="Contoh: Unduh dokumen statuta..."
+                                />
+                              </div>
+
+                              {/* Cards Builder */}
+                              <div className="space-y-3 p-4 border border-slate-200 rounded-2xl bg-white text-left">
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                  <span className="text-[9px] font-extrabold text-blue-750 uppercase tracking-wider">
+                                    Daftar Kartu Tautan / Menu Link Visual
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updatedCards = [...(section.cards || []), { title: '', subtitle: '', url: '', icon: 'book' }];
+                                      const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, cards: updatedCards } : sec);
+                                      updateDipSections(arr);
+                                    }}
+                                    className="px-2.5 py-1 bg-[#002147] hover:bg-[#003166] text-white rounded-lg text-[9px] font-bold uppercase tracking-wider inline-flex items-center gap-1 cursor-pointer border-0"
+                                  >
+                                    + Tambah Kartu
+                                  </button>
+                                </div>
+                                
+                                <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+                                  {section.cards && section.cards.length > 0 ? (
+                                    section.cards.map((card, cIdx) => (
+                                      <div key={cIdx} className="p-3 border border-slate-150 rounded-xl bg-slate-50/50 relative space-y-2 text-left">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updatedCards = section.cards!.filter((_, i) => i !== cIdx);
+                                            const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, cards: updatedCards } : sec);
+                                            updateDipSections(arr);
+                                          }}
+                                          className="absolute top-2 right-2 text-rose-500 hover:text-rose-700 font-bold text-xs border-0 bg-transparent cursor-pointer"
+                                        >
+                                          Hapus
+                                        </button>
+                                        
+                                        <div className="grid grid-cols-2 gap-2 pr-10">
+                                          <div>
+                                            <label className="text-[8px] font-bold text-slate-400 block">Judul Kartu</label>
+                                            <input
+                                              type="text"
+                                              value={card.title}
+                                              onChange={(e) => {
+                                                const updatedCards = section.cards!.map((c, i) => i === cIdx ? { ...c, title: e.target.value } : c);
+                                                const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, cards: updatedCards } : sec);
+                                                updateDipSections(arr);
+                                              }}
+                                              className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold text-slate-700 bg-white"
+                                              placeholder="Statuta UPERTIS"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="text-[8px] font-bold text-slate-400 block">Keterangan / Subjudul</label>
+                                            <input
+                                              type="text"
+                                              value={card.subtitle}
+                                              onChange={(e) => {
+                                                const updatedCards = section.cards!.map((c, i) => i === cIdx ? { ...c, subtitle: e.target.value } : c);
+                                                const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, cards: updatedCards } : sec);
+                                                updateDipSections(arr);
+                                              }}
+                                              className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-600 bg-white"
+                                              placeholder="Landasan hukum..."
+                                            />
+                                          </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div>
+                                            <label className="text-[8px] font-bold text-slate-400 block">Link URL Tujuan</label>
+                                            <input
+                                              type="text"
+                                              value={card.url}
+                                              onChange={(e) => {
+                                                const updatedCards = section.cards!.map((c, i) => i === cIdx ? { ...c, url: e.target.value } : c);
+                                                const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, cards: updatedCards } : sec);
+                                                updateDipSections(arr);
+                                              }}
+                                              className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs font-mono text-slate-600 bg-white"
+                                              placeholder="/download atau /halaman/..."
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="text-[8px] font-bold text-slate-400 block">Pilihan Ikon</label>
+                                            <select
+                                              value={card.icon}
+                                              onChange={(e) => {
+                                                const updatedCards = section.cards!.map((c, i) => i === cIdx ? { ...c, icon: e.target.value } : c);
+                                                const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, cards: updatedCards } : sec);
+                                                updateDipSections(arr);
+                                              }}
+                                              className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold text-slate-700 bg-white"
+                                            >
+                                              <option value="bookOpen">Buku Terbuka (Panduan)</option>
+                                              <option value="book">Buku Regulasi</option>
+                                              <option value="building">Gedung / Kantor</option>
+                                              <option value="check">Centang / Sukses</option>
+                                              <option value="clipboard">Papan Klip / Daftar</option>
+                                              <option value="users">Grup / Struktur</option>
+                                              <option value="user">Profil Orang</option>
+                                              <option value="calendar">Kalender / Hari</option>
+                                              <option value="fileText">Laporan / Teks</option>
+                                              <option value="link">Link Tautan</option>
+                                              <option value="trendingUp">Grafik Naik (Kinerja)</option>
+                                              <option value="briefcase">Tas Kerja / Layanan</option>
+                                              <option value="help">Tanda Tanya (Q&A)</option>
+                                            </select>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="py-4 text-center text-slate-400 text-[10px] italic border border-dashed border-slate-200 rounded-xl">
+                                      Belum ada kartu tautan ditambahkan.
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block">Paragraf Teks Deskripsi Tambahan (HTML/Teks Bebas)</label>
+                                <textarea
+                                  value={section.text}
+                                  onChange={(e) => {
+                                    const arr = dipSections.map((sec, i) => i === sIdx ? { ...sec, text: e.target.value } : sec);
+                                    updateDipSections(arr);
+                                  }}
+                                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-800 bg-white h-24 resize-none focus:outline-none"
+                                  placeholder="Masukkan deskripsi teks tambahan jika ada..."
+                                />
+                              </div>
                             </div>
 
                             {/* Image / Layout Settings */}
