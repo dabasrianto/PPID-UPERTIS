@@ -31,11 +31,16 @@ export default function Footer({
                 className="flex items-center gap-2 bg-black text-white px-3 py-1.5 rounded-xl border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 transition-all text-left group shrink-0"
               >
                 <svg
-                  className="h-5 w-5 fill-current text-white group-hover:scale-110 transition-transform"
-                  viewBox="0 0 512 512"
+                  className="h-5 w-5 group-hover:scale-110 transition-transform shrink-0"
+                  viewBox="0 0 466 511.98"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 0 25 9.3 25 22.3v467.4C25 502.7 34 512 47 512c5.8 0 11.6-2.2 16.5-6.6L293 276.5 63.5 6.6C58.6 2.2 52.8 0 47 0zm397.6 182.2L354.2 245l64.1 64.1L490 263.2c13.7-7.9 22-22.3 22-38.2 0-15.9-8.3-30.3-22-38.2l-45.4-24.6zM325.3 277.7l60.1 60.1L104.6 499l220.7-221.3z" />
+                  <g fillRule="nonzero">
+                    <path fill="#EA4335" d="M199.9 237.8 1.4 470.17c7.22 24.57 30.16 41.81 55.8 41.81 11.16 0 20.93-2.79 29.3-8.37l244.16-139.46L199.9 237.8z"/>
+                    <path fill="#FBBC04" d="m433.91 205.1-104.65-60-111.61 110.22 113.01 108.83 104.64-58.6c18.14-9.77 30.7-29.3 30.7-50.23-1.4-20.93-13.95-40.46-32.09-50.22z"/>
+                    <path fill="#34A853" d="M199.42 273.45 329.27 145.1 87.9 8.37C79.53 2.79 68.36 0 57.2 0 30.7 0 6.98 18.14 1.4 41.86l198.02 231.59z"/>
+                    <path fill="#4285F4" d="M1.39 41.86C0 46.04 0 51.63 0 57.2v397.64c0 5.57 0 9.76 1.4 15.34l216.27-214.86L1.39 41.86z"/>
+                  </g>
                 </svg>
                 <div className="flex flex-col leading-none">
                   <span className="text-[7px] text-zinc-400 uppercase tracking-widest font-semibold">GET IT ON</span>
