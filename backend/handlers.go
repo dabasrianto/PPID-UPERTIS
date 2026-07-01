@@ -3681,7 +3681,7 @@ func handlePageRequest(c *fiber.Ctx) error {
 		id := strings.TrimPrefix(path, "/berita/")
 		var newsTitle, newsExcerpt, newsImage sql.NullString
 		err := db.QueryRowContext(context.Background(),
-			`SELECT title, excerpt, image_url FROM news WHERE id::text = $1 AND deleted_at IS NULL`,
+			`SELECT title, excerpt, image_url FROM news WHERE (slug = $1 OR id::text = $1) AND deleted_at IS NULL`,
 			id,
 		).Scan(&newsTitle, &newsExcerpt, &newsImage)
 
