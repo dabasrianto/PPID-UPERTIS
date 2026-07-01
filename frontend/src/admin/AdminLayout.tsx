@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, Layers, Download, Image, FileText, Newspaper, MessageSquare, Settings, LogOut, CheckCircle, X, Landmark, Menu
+  LayoutDashboard, Layers, Download, Image, FileText, Newspaper, MessageSquare, Settings, LogOut, CheckCircle, X, Landmark, Menu, BarChart3
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/helpers';
 
@@ -36,7 +36,9 @@ export default function AdminLayout({
 
   const menuList = [
     { key: 'dashboard', label: 'Dashboard Utama', icon: Landmark, action: () => { setAdminActiveTab('dashboard'); fetchAdminData(); }, desc: 'Statistik & ringkasan aktivitas', color: 'text-blue-500 bg-blue-50 border border-blue-100' },
+    { key: 'analytics', label: 'Analisis Pengunjung', icon: BarChart3, action: () => setAdminActiveTab('analytics'), desc: 'Statistik realtime & asal negara', color: 'text-sky-500 bg-sky-50 border border-sky-100' },
     { key: 'slider', label: 'Slider Beranda', icon: Layers, action: () => setAdminActiveTab('slider'), desc: 'Banner promo & gambar utama', color: 'text-indigo-500 bg-indigo-50 border border-indigo-100' },
+
     { key: 'downloads', label: 'Kelola Unduhan', icon: Download, action: () => setAdminActiveTab('downloads'), desc: 'Unggah file & dokumen resmi', color: 'text-emerald-500 bg-emerald-50 border border-emerald-100' },
     { key: 'gallery', label: 'Kelola Galeri', icon: Image, action: () => setAdminActiveTab('gallery'), desc: 'Foto & dokumentasi kegiatan', color: 'text-amber-500 bg-amber-50 border border-amber-100' },
     { key: 'pages', label: 'Kelola Halaman', icon: FileText, action: () => setAdminActiveTab('pages'), desc: 'Profil, regulasi & sengketa', color: 'text-rose-500 bg-rose-50 border border-rose-100' },

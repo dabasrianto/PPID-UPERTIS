@@ -504,6 +504,8 @@ func setupRoutes(api fiber.Router) {
 	admin.Put("/pmb/candidates/:id/status", superAdminAuth, updateCandidateStatus)
 	admin.Get("/pmb/export", superAdminAuth, exportCandidates)
 	admin.Get("/analytics", facultyAuth, getAnalytics)
+	admin.Get("/analytics/visitors", facultyAuth, getVisitorAnalytics)
+
 	admin.Post("/uploads", facultyAuth, uploadMultipleFiles)
 	admin.Post("/ai/generate", facultyAuth, handleAdminAIGenerate)
 	admin.Get("/media", facultyAuth, getMediaLibrary)

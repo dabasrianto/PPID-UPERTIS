@@ -17,6 +17,7 @@ import DynamicPage from './pages/DynamicPage';
 import AdminLogin from './admin/AdminLogin';
 import AdminLayout from './admin/AdminLayout';
 import DashboardOverview from './admin/tabs/DashboardOverview';
+import VisitorAnalytics from './admin/tabs/VisitorAnalytics';
 import ManageSlider from './admin/tabs/ManageSlider';
 import ManageDownloads from './admin/tabs/ManageDownloads';
 import ManageGallery from './admin/tabs/ManageGallery';
@@ -25,6 +26,7 @@ import ManageNews from './admin/tabs/ManageNews';
 import ManagePermohonan from './admin/tabs/ManagePermohonan';
 import PortalSettings from './admin/tabs/PortalSettings';
 import MenuManager from './admin/tabs/MenuManager';
+
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -580,7 +582,55 @@ const heroImages = useMemo(() => {
     return () => window.removeEventListener('popstate', handleLocationChange);
   }, []);
 
+  // Real-time visitor ping tracking
+  useEffect(() => {
+    if (currentPage !== 'admin') {
+      const getPagePath = () => {
+        if (currentPage === 'home') return '/';
+        if (currentPage === 'berita') return '/berita';
+        if (currentPage === 'berita-detail') {
+          return `/berita/${selectedPost?.slug || selectedPost?.id || 'detail'}`;
+        }
+        if (currentPage.startsWith('page/')) {
+          const slug = currentPage.replace('page/', '');
+          return `/halaman/${slug}`;
+        }
+        return `/${currentPage}`;
+      };
+
+      const path = getPagePath();
+      fetch(`${API_BASE_URL}/visitor-ping`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page: path })
+      }).catch(err => console.error('Failed to send visitor ping:', err));
+    }
+  }, [currentPage, selectedPost]);
+
+  // Keep admin session alive
+  useEffect(() => {
+    if (currentPage === 'admin' && adminUser) {
+      const pingKeepalive = () => {
+        const token = localStorage.getItem('auth_token');
+        if (!token) return;
+        fetch(`${API_BASE_URL}/keepalive`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ page: `/admin/${adminActiveTab}` })
+        }).catch(err => console.error('Keepalive ping failed:', err));
+      };
+
+      pingKeepalive();
+      const interval = setInterval(pingKeepalive, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [currentPage, adminUser, adminActiveTab]);
+
   // Sync state values when config loads
+
   const loadConfigFields = (config: any) => {
     setPortalName(config.name || '');
     setPortalDesc(config.description || '');
@@ -1861,6 +1911,11 @@ setPermohonanActionLoading(false);
                     setAdminActiveTab={setAdminActiveTab}
                   />
                 )}
+
+                {adminActiveTab === 'analytics' && (
+                  <VisitorAnalytics API_BASE_URL={API_BASE_URL} />
+                )}
+
 
                 {adminActiveTab === 'slider' && (
                   <ManageSlider

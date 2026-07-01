@@ -267,6 +267,27 @@ func initDB() {
 		log.Println("Warning: Failed to create visitor_country_counts table:", err)
 	}
 
+	// Create visitor_logs table
+	_, err = db.ExecContext(context.Background(), `
+		CREATE TABLE IF NOT EXISTS visitor_logs (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			ip_address VARCHAR(50) NOT NULL,
+			country_code VARCHAR(10) NOT NULL DEFAULT 'ID',
+			page_url VARCHAR(500) NOT NULL,
+			user_agent VARCHAR(500),
+			browser VARCHAR(100),
+			os VARCHAR(100),
+			visited_at TIMESTAMP DEFAULT NOW()
+		)
+	`)
+	if err != nil {
+		log.Println("Warning: Failed to create visitor_logs table:", err)
+	}
+
+	// Create indexes for visitor_logs
+	_, _ = db.ExecContext(context.Background(), `CREATE INDEX IF NOT EXISTS idx_visitor_logs_date ON visitor_logs(visited_at DESC)`)
+	_, _ = db.ExecContext(context.Background(), `CREATE INDEX IF NOT EXISTS idx_visitor_logs_country ON visitor_logs(country_code)`)
+
 
 	// Create popup_banners table
 	_, err = db.ExecContext(context.Background(), `

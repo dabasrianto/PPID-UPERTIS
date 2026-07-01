@@ -2,12 +2,59 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
+
+var (
+	ipCountryCache = make(map[string]string)
+	ipCountryMu    sync.RWMutex
+)
+
+func resolveCountry(ip string, cfCountry string) string {
+	if cfCountry != "" {
+		return strings.ToUpper(cfCountry)
+	}
+	// Default local networks to ID
+	if ip == "127.0.0.1" || ip == "::1" || strings.HasPrefix(ip, "192.168.") || strings.HasPrefix(ip, "10.") || strings.HasPrefix(ip, "172.16.") {
+		return "ID"
+	}
+	return fetchCountryFromIP(ip)
+}
+
+func fetchCountryFromIP(ip string) string {
+	ipCountryMu.RLock()
+	if cCode, exists := ipCountryCache[ip]; exists {
+		ipCountryMu.RUnlock()
+		return cCode
+	}
+	ipCountryMu.RUnlock()
+
+	countryCode := "ID" // default fallback
+	client := http.Client{Timeout: 1500 * time.Millisecond}
+	resp, err := client.Get("http://ip-api.com/json/" + ip)
+	if err == nil {
+		defer resp.Body.Close()
+		var res struct {
+			CountryCode string `json:"countryCode"`
+			Status      string `json:"status"`
+		}
+		if json.NewDecoder(resp.Body).Decode(&res) == nil && res.Status == "success" {
+			countryCode = res.CountryCode
+		}
+	}
+
+	ipCountryMu.Lock()
+	ipCountryCache[ip] = countryCode
+	ipCountryMu.Unlock()
+
+	return countryCode
+}
 
 func migrateLiveUsersTable() {
 	db.ExecContext(context.Background(), `
@@ -36,6 +83,10 @@ func migrateLiveUsersTable() {
 		)
 	`)
 	db.ExecContext(context.Background(), `CREATE INDEX IF NOT EXISTS idx_active_visitors_last ON active_visitors(last_active DESC)`)
+
+	// Run migration to add country_code columns if missing
+	_, _ = db.ExecContext(context.Background(), `ALTER TABLE active_sessions ADD COLUMN IF NOT EXISTS country_code VARCHAR(10) DEFAULT 'ID'`)
+	_, _ = db.ExecContext(context.Background(), `ALTER TABLE active_visitors ADD COLUMN IF NOT EXISTS country_code VARCHAR(10) DEFAULT 'ID'`)
 }
 
 // keepalive — authenticated users ping this every 30s
@@ -58,15 +109,30 @@ func keepalive(c *fiber.Ctx) error {
 		page = "/"
 	}
 
+	cfCountry := c.Get("CF-IPCountry", "")
+	country := resolveCountry(ip, cfCountry)
+
+	var prevPage string
+	_ = db.QueryRowContext(context.Background(), "SELECT last_page FROM active_sessions WHERE user_id = $1", userID).Scan(&prevPage)
+
 	_, err := db.ExecContext(context.Background(),
-		`INSERT INTO active_sessions (user_id, ip_address, user_agent, last_page, last_active, browser, os)
-		 VALUES ($1, $2, $3, $4, NOW(), $5, $6)
-		 ON CONFLICT (user_id) DO UPDATE SET ip_address=$2, user_agent=$3, last_page=$4, last_active=NOW(), browser=$5, os=$6`,
-		userID, ip, truncateStr(ua, 500), page, browser, os,
+		`INSERT INTO active_sessions (user_id, ip_address, user_agent, last_page, last_active, browser, os, country_code)
+		 VALUES ($1, $2, $3, $4, NOW(), $5, $6, $7)
+		 ON CONFLICT (user_id) DO UPDATE SET ip_address=$2, user_agent=$3, last_page=$4, last_active=NOW(), browser=$5, os=$6, country_code=$7`,
+		userID, ip, truncateStr(ua, 500), page, browser, os, country,
 	)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed"})
 	}
+
+	if prevPage != page {
+		_, _ = db.ExecContext(context.Background(),
+			`INSERT INTO visitor_logs (ip_address, country_code, page_url, user_agent, browser, os, visited_at)
+			 VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+			ip, country, truncateStr(page, 500), truncateStr(ua, 500), browser, os,
+		)
+	}
+
 	return c.JSON(fiber.Map{"ok": true})
 }
 
@@ -74,7 +140,7 @@ func keepalive(c *fiber.Ctx) error {
 func getLiveUsers(c *fiber.Ctx) error {
 	// Authenticated users
 	rows, err := db.QueryContext(context.Background(),
-		`SELECT s.user_id, u.full_name, u.email, u.role, s.ip_address, s.last_page, s.browser, s.os, s.last_active
+		`SELECT s.user_id, u.full_name, u.email, u.role, s.ip_address, s.last_page, s.browser, s.os, s.last_active, COALESCE(s.country_code, 'ID')
 		 FROM active_sessions s
 		 JOIN users u ON u.id = s.user_id
 		 WHERE s.last_active > NOW() - INTERVAL '5 minutes'
@@ -86,20 +152,20 @@ func getLiveUsers(c *fiber.Ctx) error {
 
 	users := []fiber.Map{}
 	for rows.Next() {
-		var uid, name, email, role, ip, page, browser, os string
+		var uid, name, email, role, ip, page, browser, os, country string
 		var lastActive time.Time
-		if rows.Scan(&uid, &name, &email, &role, &ip, &page, &browser, &os, &lastActive) == nil {
+		if rows.Scan(&uid, &name, &email, &role, &ip, &page, &browser, &os, &lastActive, &country) == nil {
 			users = append(users, fiber.Map{
 				"user_id": uid, "full_name": name, "email": email, "role": role,
 				"ip_address": ip, "last_page": page, "browser": browser, "os": os,
-				"last_active": lastActive,
+				"last_active": lastActive, "country_code": country,
 			})
 		}
 	}
 
 	// Anonymous visitors
 	vRows, _ := db.QueryContext(context.Background(),
-		`SELECT ip_address, last_page, browser, os, last_active
+		`SELECT ip_address, last_page, browser, os, last_active, COALESCE(country_code, 'ID')
 		 FROM active_visitors
 		 WHERE last_active > NOW() - INTERVAL '5 minutes'
 		 AND ip_address NOT IN (SELECT ip_address FROM active_sessions WHERE last_active > NOW() - INTERVAL '5 minutes')
@@ -108,12 +174,12 @@ func getLiveUsers(c *fiber.Ctx) error {
 	if vRows != nil {
 		defer vRows.Close()
 		for vRows.Next() {
-			var ip, page, browser, os string
+			var ip, page, browser, os, country string
 			var lastActive time.Time
-			if vRows.Scan(&ip, &page, &browser, &os, &lastActive) == nil {
+			if vRows.Scan(&ip, &page, &browser, &os, &lastActive, &country) == nil {
 				visitors = append(visitors, fiber.Map{
 					"ip_address": ip, "last_page": page, "browser": browser, "os": os,
-					"last_active": lastActive,
+					"last_active": lastActive, "country_code": country,
 				})
 			}
 		}
@@ -173,12 +239,22 @@ func visitorPing(c *fiber.Ctx) error {
 		page = "/"
 	}
 
-	db.ExecContext(context.Background(),
-		`INSERT INTO active_visitors (ip_address, user_agent, last_page, last_active, browser, os)
-		 VALUES ($1, $2, $3, NOW(), $4, $5)
-		 ON CONFLICT (ip_address) DO UPDATE SET user_agent=$2, last_page=$3, last_active=NOW(), browser=$4, os=$5`,
-		ip, truncateStr(ua, 500), page, browser, os,
+	cfCountry := c.Get("CF-IPCountry", "")
+	country := resolveCountry(ip, cfCountry)
+
+	_, _ = db.ExecContext(context.Background(),
+		`INSERT INTO active_visitors (ip_address, user_agent, last_page, last_active, browser, os, country_code)
+		 VALUES ($1, $2, $3, NOW(), $4, $5, $6)
+		 ON CONFLICT (ip_address) DO UPDATE SET user_agent=$2, last_page=$3, last_active=NOW(), browser=$4, os=$5, country_code=$6`,
+		ip, truncateStr(ua, 500), page, browser, os, country,
 	)
+
+	_, _ = db.ExecContext(context.Background(),
+		`INSERT INTO visitor_logs (ip_address, country_code, page_url, user_agent, browser, os, visited_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+		ip, country, truncateStr(page, 500), truncateStr(ua, 500), browser, os,
+	)
+
 	return c.JSON(fiber.Map{"ok": true})
 }
 
@@ -224,3 +300,4 @@ func truncateStr(s string, max int) string {
 	}
 	return s
 }
+
