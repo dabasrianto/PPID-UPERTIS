@@ -16,6 +16,7 @@ interface AdminLayoutProps {
   setAdminGlobalMessage: (msg: string) => void;
   siteConfig: any;
   children: React.ReactNode;
+  pendingPermohonanCount?: number;
 }
 
 export default function AdminLayout({
@@ -28,7 +29,8 @@ export default function AdminLayout({
   adminGlobalMessage,
   setAdminGlobalMessage,
   siteConfig,
-  children
+  children,
+  pendingPermohonanCount = 0
 }: AdminLayoutProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -182,6 +184,11 @@ export default function AdminLayout({
                             {menu.desc}
                           </div>
                         </div>
+                        {menu.key === 'permohonan' && pendingPermohonanCount > 0 && (
+                          <span className="ml-auto bg-rose-500 text-white font-extrabold text-[9px] px-2 py-0.5 rounded-full shadow-sm animate-pulse shrink-0 self-center">
+                            {pendingPermohonanCount}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -274,6 +281,11 @@ export default function AdminLayout({
                       {menu.desc}
                     </div>
                   </div>
+                  {menu.key === 'permohonan' && pendingPermohonanCount > 0 && (
+                    <span className="ml-auto bg-rose-500 text-white font-extrabold text-[9.5px] px-2 py-0.5 rounded-full shadow-sm animate-pulse shrink-0 self-center">
+                      {pendingPermohonanCount}
+                    </span>
+                  )}
                 </button>
               );
             })}

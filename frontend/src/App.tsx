@@ -1908,6 +1908,7 @@ setPermohonanActionLoading(false);
                 adminGlobalMessage={adminGlobalMessage}
                 setAdminGlobalMessage={setAdminGlobalMessage}
                 siteConfig={siteConfig}
+                pendingPermohonanCount={adminPermohonans.filter(p => p.status === 'pending').length}
               >
                 {adminActiveTab === 'dashboard' && (
                   <DashboardOverview
