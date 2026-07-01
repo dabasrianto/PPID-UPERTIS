@@ -374,6 +374,7 @@ const heroImages = useMemo(() => {
   const [portalFontSize, setPortalFontSize] = useState<string>('normal');
   const [portalRektoratEmail, setPortalRektoratEmail] = useState<string>('');
   const [portalRektoratPhone, setPortalRektoratPhone] = useState<string>('');
+  const [portalPlaystoreLink, setPortalPlaystoreLink] = useState<string>('');
   const [portalRektoratAddress, setPortalRektoratAddress] = useState<string>('');
   const [portalKampus2Address, setPortalKampus2Address] = useState<string>('');
   const [portalKampus1MapUrl, setPortalKampus1MapUrl] = useState<string>('');
@@ -651,6 +652,7 @@ const heroImages = useMemo(() => {
       setPortalFontSize(config.settings.font_size || 'normal');
       setPortalRektoratEmail(config.settings.rektorat_email || '');
       setPortalRektoratPhone(config.settings.rektorat_phone || '');
+      setPortalPlaystoreLink(config.settings.playstore_link || '');
       setPortalRektoratAddress(config.settings.rektorat_address || '');
       setPortalKampus2Address(config.settings.kampus2_address || '');
       setPortalKampus1MapUrl(config.settings.kampus1_map_url || '');
@@ -1239,6 +1241,7 @@ const heroImages = useMemo(() => {
         font_size: portalFontSize,
         rektorat_email: portalRektoratEmail,
         rektorat_phone: portalRektoratPhone,
+        playstore_link: portalPlaystoreLink,
         rektorat_address: portalRektoratAddress,
         kampus2_address: portalKampus2Address,
         kampus1_map_url: portalKampus1MapUrl,
@@ -2156,6 +2159,8 @@ setPermohonanActionLoading(false);
                     setPortalRektoratEmail={setPortalRektoratEmail}
                     portalRektoratPhone={portalRektoratPhone}
                     setPortalRektoratPhone={setPortalRektoratPhone}
+                    portalPlaystoreLink={portalPlaystoreLink}
+                    setPortalPlaystoreLink={setPortalPlaystoreLink}
                     portalRektoratAddress={portalRektoratAddress}
                     setPortalRektoratAddress={setPortalRektoratAddress}
                     portalKampus2Address={portalKampus2Address}
@@ -2200,6 +2205,7 @@ setPermohonanActionLoading(false);
           navigateToHome={navigateToHome}
           navigateToPage={navigateToPage}
           setCurrentPage={setCurrentPage}
+          playstoreLink={siteConfig?.settings?.playstore_link}
         />
       </div>
 

@@ -58,6 +58,8 @@ interface PortalSettingsProps {
   setPortalRektoratEmail: (val: string) => void;
   portalRektoratPhone: string;
   setPortalRektoratPhone: (val: string) => void;
+  portalPlaystoreLink: string;
+  setPortalPlaystoreLink: (val: string) => void;
   portalRektoratAddress: string;
   setPortalRektoratAddress: (val: string) => void;
   portalKampus2Address: string;
@@ -138,6 +140,8 @@ export default function PortalSettings({
   setPortalRektoratEmail,
   portalRektoratPhone,
   setPortalRektoratPhone,
+  portalPlaystoreLink,
+  setPortalPlaystoreLink,
   portalRektoratAddress,
   setPortalRektoratAddress,
   portalKampus2Address,
@@ -626,6 +630,17 @@ export default function PortalSettings({
                   className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs focus:outline-none bg-slate-50 font-medium"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Link Aplikasi Play Store (Google Play)</label>
+              <input
+                type="text"
+                placeholder="https://play.google.com/store/apps/details?id=..."
+                value={portalPlaystoreLink}
+                onChange={(e) => setPortalPlaystoreLink(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs focus:outline-none bg-slate-50 font-medium text-slate-800 font-mono text-[11px]"
+              />
             </div>
 
             <div className="space-y-3">
