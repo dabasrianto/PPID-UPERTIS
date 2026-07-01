@@ -1,6 +1,8 @@
-import { Newspaper } from 'lucide-react';
+import { useState } from 'react';
+import { Newspaper, LayoutGrid, List } from 'lucide-react';
 import type { Post } from '../types';
 import NewsCard from '../components/NewsCard';
+
 
 interface NewsProps {
   posts: Post[];
@@ -23,8 +25,11 @@ export default function News({
   navigateToHome,
   navigateToNewsDetail
 }: NewsProps) {
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
   return (
-    <div className="container mx-auto px-4 py-12 max-w-6xl text-left flex-1 space-y-8">
+    <div className="container mx-auto px-4 py-12 max-w-6xl text-left flex-1 space-y-6">
+
       <div className="space-y-2">
         <button
           onClick={navigateToHome}
@@ -65,24 +70,61 @@ export default function News({
         </div>
       )}
 
+      {/* View Switcher Bar */}
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h2 className="text-xs font-black text-[#002147] uppercase tracking-wider">
+          Arsip Warta Berita
+        </h2>
+        
+        {/* Toggle Buttons */}
+        <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200 shadow-sm shrink-0">
+          <button
+            type="button"
+            onClick={() => setViewMode('grid')}
+            className={`p-1.5 rounded-lg transition-all cursor-pointer border-0 ${
+              viewMode === 'grid'
+                ? 'bg-[#002147] text-white shadow-sm'
+                : 'text-slate-505 hover:text-slate-800 bg-transparent'
+            }`}
+            title="Tampilan Kolom (Grid)"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={`p-1.5 rounded-lg transition-all cursor-pointer border-0 ${
+              viewMode === 'list'
+                ? 'bg-[#002147] text-white shadow-sm'
+                : 'text-slate-505 hover:text-slate-800 bg-transparent'
+            }`}
+            title="Tampilan Daftar (List)"
+          >
+            <List className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
       {isPostsLoading ? (
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6" : "grid grid-cols-1 gap-4"}>
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="h-64 bg-slate-100 rounded-3xl animate-pulse" />
+            <div key={i} className={`bg-slate-100 rounded-3xl animate-pulse ${viewMode === 'list' ? 'h-28 sm:h-44 w-full' : 'h-48 sm:h-64'}`} />
           ))}
         </div>
       ) : posts.length > 0 ? (
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6" : "grid grid-cols-1 gap-4"}>
           {posts.map((post) => (
             <NewsCard
               key={post.id}
               post={post}
+              viewMode={viewMode}
               navigateToNewsDetail={navigateToNewsDetail}
             />
           ))}
         </div>
       ) : (
         <div className="py-16 text-center text-slate-400 text-xs font-medium">
+
           Belum ada berita dirilis.
         </div>
       )}
