@@ -19,6 +19,8 @@ interface PermohonanInformasiProps {
   setFormEmail: (val: string) => void;
   formPhone: string;
   setFormPhone: (val: string) => void;
+  formAddress: string;
+  setFormAddress: (val: string) => void;
   formAttachmentUrl: string;
   setFormAttachmentUrl: (val: string) => void;
   formIsUploading: boolean;
@@ -60,6 +62,8 @@ export default function PermohonanInformasi({
   setFormEmail,
   formPhone,
   setFormPhone,
+  formAddress,
+  setFormAddress,
   formAttachmentUrl,
   setFormAttachmentUrl,
   formIsUploading,
@@ -71,6 +75,10 @@ export default function PermohonanInformasi({
   formPurpose,
   setFormPurpose,
   formSubmitError,
+  formObtainMethod,
+  setFormObtainMethod,
+  formDeliveryMethod,
+  setFormDeliveryMethod,
 
   // Ticket Tracking
   trackTicketNumber,
@@ -282,6 +290,18 @@ export default function PermohonanInformasi({
                         </label>
                       </div>
                     </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">Alamat Lengkap Pemohon <span className="text-red-500">*</span></label>
+                      <textarea
+                        required
+                        rows={2}
+                        value={formAddress}
+                        onChange={(e) => setFormAddress(e.target.value)}
+                        placeholder="Contoh: Jl. Adinegoro No.17, Lubuk Buaya, Koto Tangah, Kota Padang"
+                        className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#002147]/20 focus:border-[#002147] transition-all bg-slate-50 font-medium text-slate-805 resize-none"
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -307,6 +327,34 @@ export default function PermohonanInformasi({
                         placeholder="Jelaskan tujuan penggunaan informasi tersebut secara rinci (cth: untuk penelitian skripsi)..."
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#002147]/20 focus:border-[#002147] transition-all font-medium text-slate-850"
                       />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-1.5 text-left">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">Cara Memperoleh Informasi <span className="text-red-500">*</span></label>
+                      <select
+                        value={formObtainMethod}
+                        onChange={(e) => setFormObtainMethod(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#002147]/20 focus:border-[#002147] font-bold text-slate-800"
+                      >
+                        <option value="melihat-membaca">Melihat / Membaca / Mendengarkan</option>
+                        <option value="mendapatkan-salinan">Mendapatkan Salinan (Softcopy / Hardcopy)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5 text-left">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">Cara Mengirimkan Informasi <span className="text-red-500">*</span></label>
+                      <select
+                        value={formDeliveryMethod}
+                        onChange={(e) => setFormDeliveryMethod(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#002147]/20 focus:border-[#002147] font-bold text-slate-800"
+                      >
+                        <option value="mengambil-langsung">Mengambil Langsung</option>
+                        <option value="email">Melalui Email</option>
+                        <option value="whatsapp">Melalui WhatsApp</option>
+                        <option value="kurir-pos">Jasa Kurir / Pos</option>
+                      </select>
                     </div>
                   </div>
 

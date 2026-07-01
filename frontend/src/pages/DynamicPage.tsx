@@ -40,6 +40,8 @@ interface DynamicPageProps {
   setFormEmail: (val: string) => void;
   formPhone: string;
   setFormPhone: (val: string) => void;
+  formAddress: string;
+  setFormAddress: (val: string) => void;
   formAttachmentUrl: string;
   setFormAttachmentUrl: (val: string) => void;
   formIsUploading: boolean;
@@ -123,6 +125,8 @@ export default function DynamicPage({
   setFormEmail,
   formPhone,
   setFormPhone,
+  formAddress,
+  setFormAddress,
   formAttachmentUrl,
   setFormAttachmentUrl,
   formIsUploading,
@@ -215,6 +219,8 @@ export default function DynamicPage({
             setFormEmail={setFormEmail}
             formPhone={formPhone}
             setFormPhone={setFormPhone}
+            formAddress={formAddress}
+            setFormAddress={setFormAddress}
             formAttachmentUrl={formAttachmentUrl}
             setFormAttachmentUrl={setFormAttachmentUrl}
             formIsUploading={formIsUploading}
